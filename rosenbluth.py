@@ -1,5 +1,6 @@
 from numpy import deg2rad, linalg, tan, sin, cos, random, array
 import matplotlib.pyplot as plt
+import matplotlib.mlab as mlab
 import scipy.stats as stats
 import sys
 import csv
@@ -23,14 +24,51 @@ def form_factors(epsilon, reduced):
 	# returns slope, intercept
 	return (regression[0], regression[1])
 
+# split data based on Q^2 to make separate calculations and plots
+def partition(q2, e, theta, cross_section, error):
+	q2_partitions = []
+	e_partitions = []
+	theta_partitions = []
+	cross_section_partitions = []
+	error_partitions = []
+	last_same = -1
+	for i in range(len(q2)-1):
+		if q2[i+1] != q2[i]:
+			q2_partitions.append(q2[last_same+1:i+1])
+			e_partitions.append(e[last_same+1:i+1])
+			theta_partitions.append(theta[last_same+1:i+1])
+			cross_section_partitions.append(cross_section[last_same+1:i+1])
+			error_partitions.append(error[last_same+1:i+1])
+			last_same = i
+	q2_partitions.append(q2[last_same+1:])
+	e_partitions.append(e[last_same+1:])
+	theta_partitions.append(theta[last_same+1:])
+	cross_section_partitions.append(cross_section[last_same+1:])
+	error_partitions.append(error[last_same+1:])
+	return q2_partitions, e_partitions, theta_partitions, cross_section_partitions, error_partitions
+
 def plot_form_factors(ge2_vals, gm2_vals, q2):
-	#label the Q^2
-	f1 = plt.figure()
-	f2 = plt.figure()
-	ax1 = f1.add_subplot(111)
-	ax1.hist(ge2, bins=50, facecolor='red')
-	ax2 = f2.add_subplot(111)
-	ax2.hist(gm2, bins=50, facecolor='blue')
+	# f1 = plt.figure()
+
+	f1, axes = plt.subplots(1, 2, figsize=(20,10))
+	# f2 = plt.figure()
+
+	ax1 = f1.add_subplot(121)
+	# ax1.hist(ge2, bins=50, facecolor='red')
+	n, bins, patches = ax1.hist(ge2, bins=50, normed=1, facecolor='red', alpha=0.75)
+	mu, sigma = stats.norm.fit(ge2)
+	y = mlab.normpdf(bins, mu, sigma)
+	ax1.plot(bins, y, 'black', linewidth=2)
+
+	ax2 = f1.add_subplot(122)
+	# ax2 = f2.add_subplot(111)
+	# ax2.hist(gm2, bins=50, facecolor='blue')
+	n, bins, patches = ax2.hist(gm2, bins=50, normed=1, facecolor='blue', alpha=0.75)
+	mu, sigma = stats.norm.fit(gm2)
+	y = mlab.normpdf(bins, mu, sigma)
+	ax2.plot(bins, y, 'black', linewidth=2)
+
+	#ISSUE: x-ticks showing from gaussian fit but not histogram bins	
 
 	# plt.hist(ge2, bins=50, facecolor='red')
 	ax1.set_title(r'$\mathrm{Histogram\ of\ G_E^2: Q^2 = '+str(q2)+'}$', {'fontsize':20})
@@ -38,7 +76,7 @@ def plot_form_factors(ge2_vals, gm2_vals, q2):
 
 	ax2.set_title(r'$\mathrm{Histogram\ of\ G_M^2: Q^2 = '+str(q2)+'}$', {'fontsize':20})
 	ax2.set_xlabel(r'$G_M^2$', {'fontsize':20})
-
+	f1.tight_layout()
 	plt.show()
 
 # sys.argv is a list of the command line flags
@@ -90,129 +128,59 @@ b = []
 
 #keep track of previous q^2 to make separate estimates of form factors
 
-percent_errors = []
+gm2_points = []
+ge2_points = []
+q2_vals = []
 
-for i in range(len(energies)):
+q_squared, energies, thetas, cross_sections, percent_errors = partition(q_squared, energies, thetas, cross_sections, uncertainties)
+for i in range(len(q_squared)):
+	if len(q_squared[i]) <= 1:
+		break
+	else:
+		for j in range(len(q_squared[i])):
+			q2 = q_squared[i][j]
+			energy = energies[i][j]
+			theta = thetas[i][j]
+			cross_section = cross_sections[i][j]
+			# percent_errors.append(uncertainties[i][j])
 
-	q2 = q_squared[i]
-	energy = energies[i]
-	theta = thetas[i]
-	cross_section = cross_sections[i]
-	percent_errors.append(uncertainties[i])
+			result = rosenbluth(q2, energy, theta, cross_section)
+			tau = result[1]
 
-	result = rosenbluth(q2, energy, theta, cross_section)
-	tau = result[1]
-	# a.append([result[0], result[1]])
-	# b.append(result[2])
+			a.append(result[0])
+			b.append(result[2])
 
-	a.append(result[0])
-	b.append(result[2])
-
-# regression = linalg.lstsq(a, b)[0]
-# ge_squared = regression[0]
-# gm_squared = regression[1]
-	if i < len(energies)-1:
-		if q_squared[i+1] != q2:
-			regression = form_factors(a, b)
-			ge_squared = regression[0]
-			gm_squared = regression[1]/tau
-			print("Q^2 = " + str(q2))
-			print("G_e^2 = " + str(ge_squared))
-			print("G_m^2 = " + str(gm_squared))
-
-
-			# Monte Carlo simulation
-
-			# sample from normal distribution around reduced cross section and epsilon
-			eps = []
-			red = []
-
-			ge2 = []
-			gm2 = [] # actually tau*gm2
-
-			samples = 10000
-
-			for j in range(len(a)):
-
-				# use uncertainties instead of 2%
-
-				#epsilon
-				# s = random.normal(a[j][0], 0.000000002, samples)
-				s = [a[j]]*samples
-				eps.append(s)
-				#reduced
-				s = random.normal(b[j], percent_errors[j], samples)
-				red.append(s)
-
-			eps = array(eps)
-			red = array(red)
-
-
-			for j in range(samples):
-				# accessing i-th column of matrix
-				eps_samples = eps[:,j]
-				red_samples = red[:,j]
-				res = form_factors(eps_samples, red_samples)
-
-				#negative slope of fit becomes 0
-				if res[0] < 0:
-					# ge2.append(0)
-					pass
-				else:
-
-					#divide out tau
-					ge2.append(res[0])
-				gm2.append(res[1]/tau)
-
-			a = []
-			b = []
-			percent_errors = []
-
-			plot_form_factors(ge2, gm2, q2)
-	elif i == len(energies)-1:
 		regression = form_factors(a, b)
 		ge_squared = regression[0]
 		gm_squared = regression[1]/tau
-
 		print("Q^2 = " + str(q2))
 		print("G_e^2 = " + str(ge_squared))
 		print("G_m^2 = " + str(gm_squared))
-
-
+		print
 		# Monte Carlo simulation
-
 		# sample from normal distribution around reduced cross section and epsilon
 		eps = []
 		red = []
-
 		ge2 = []
-		gm2 = [] # actually tau*gm2
-
+		gm2 = []
 		samples = 10000
-
 		for j in range(len(a)):
-
-			# use uncertainties instead of 2%
-
 			#epsilon
-			# s = random.normal(a[j][0], 0.000000002, samples)
 			s = [a[j]]*samples
 			eps.append(s)
 			#reduced
-			s = random.normal(b[j], percent_errors[j], samples)
+			s = random.normal(b[j], percent_errors[i][j]/100, samples)
 			red.append(s)
-
 		eps = array(eps)
 		red = array(red)
 
-
 		for j in range(samples):
-			# accessing j-th column of matrix
+			# accessing i-th column of matrix
 			eps_samples = eps[:,j]
 			red_samples = red[:,j]
 			res = form_factors(eps_samples, red_samples)
-
 			#negative slope of fit becomes 0
+
 			if res[0] < 0:
 				# ge2.append(0)
 				pass
@@ -224,8 +192,8 @@ for i in range(len(energies)):
 
 		a = []
 		b = []
-		percent_errors = []
-
+		# ge2_points.append(ge2)
+		# gm2_points.append(gm2)
+		# q2_vals.append(q2)
 		plot_form_factors(ge2, gm2, q2)
-
 
