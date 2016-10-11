@@ -48,35 +48,30 @@ def partition(q2, e, theta, cross_section, error):
 	return q2_partitions, e_partitions, theta_partitions, cross_section_partitions, error_partitions
 
 def plot_form_factors(ge2_vals, gm2_vals, q2):
-	# f1 = plt.figure()
 
-	f1, axes = plt.subplots(1, 2, figsize=(20,10))
-	# f2 = plt.figure()
-
-	ax1 = f1.add_subplot(121)
+	# f1, axes = plt.subplots(1, 2, figsize=(20,10))
+	plt.delaxes()
+	# ax1 = f1.add_subplot(121)
+	ax1 = plt.subplot(121)
 	# ax1.hist(ge2, bins=50, facecolor='red')
-	n, bins, patches = ax1.hist(ge2, bins=50, normed=1, facecolor='red', alpha=0.75)
-	mu, sigma = stats.norm.fit(ge2)
-	y = mlab.normpdf(bins, mu, sigma)
-	ax1.plot(bins, y, 'black', linewidth=2)
+	mu1, sigma1 = stats.norm.fit(ge2_vals)
+	n, bins, patches = ax1.hist(ge2_vals, bins=50,facecolor='blue', alpha=0.5)
+	y = mlab.normpdf(bins, mu1, sigma1)
+	plt.plot(bins, y, 'r--', linewidth=2)
 
-	ax2 = f1.add_subplot(122)
-	# ax2 = f2.add_subplot(111)
+	# ax2 = f1.add_subplot(122)
+	ax2 = plt.subplot(122)
 	# ax2.hist(gm2, bins=50, facecolor='blue')
-	n, bins, patches = ax2.hist(gm2, bins=50, normed=1, facecolor='blue', alpha=0.75)
-	mu, sigma = stats.norm.fit(gm2)
-	y = mlab.normpdf(bins, mu, sigma)
-	ax2.plot(bins, y, 'black', linewidth=2)
+	mu2, sigma2 = stats.norm.fit(gm2_vals)
+	n, bins, patches = ax2.hist(gm2_vals, bins=50,facecolor='blue', alpha=0.5)
+	y = mlab.normpdf(bins, mu2, sigma2)
+	plt.plot(bins, y, 'r--', linewidth=2)
 
-	#ISSUE: x-ticks showing from gaussian fit but not histogram bins	
-
-	# plt.hist(ge2, bins=50, facecolor='red')
-	ax1.set_title(r'$\mathrm{Histogram\ of\ G_E^2: Q^2 = '+str(q2)+'}$', {'fontsize':20})
+	ax1.set_title(r'$\mathrm{Histogram\ of\ G_E^2: Q^2 = %.3f},\ \mu = %f,\ \sigma = %f$' % (q2,mu1,sigma1) , {'fontsize':20})
 	ax1.set_xlabel(r'$G_E^2$', {'fontsize':20})
 
-	ax2.set_title(r'$\mathrm{Histogram\ of\ G_M^2: Q^2 = '+str(q2)+'}$', {'fontsize':20})
+	ax2.set_title(r'$\mathrm{Histogram\ of\ G_M^2: Q^2 = %.3f},\ \mu = %f,\ \sigma = %f$' % (q2,mu2,sigma2), {'fontsize':20})
 	ax2.set_xlabel(r'$G_M^2$', {'fontsize':20})
-	f1.tight_layout()
 	plt.show()
 
 # sys.argv is a list of the command line flags
@@ -173,6 +168,7 @@ for i in range(len(q_squared)):
 			red.append(s)
 		eps = array(eps)
 		red = array(red)
+
 
 		for j in range(samples):
 			# accessing i-th column of matrix
