@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from numpy import deg2rad, linalg, tan, sin, cos, random, array, std, mean, where
+# test working of chi square distribution with ~30 points along a straight line
+
+from numpy import deg2rad, linalg, tan, sin, cos, random, array, std, mean, where, linspace
 import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
 import scipy.stats as stats
@@ -12,7 +14,7 @@ from rosenbluth import rosenbluth, partition
 def chi_square(x, y, error, fit_function):
 	vals = []
 	for i in range(len(x)):
-		vals.append((y[i] - fit_function(x[i]))**2/error[i])
+		vals.append((fit_function(x[i]) - y[i])**2/error[i]**2)
 	return sum(vals)
 
 if len(sys.argv) > 1:
@@ -44,32 +46,62 @@ else:
 	uncertainties = [2.243e-4,4.407e-4,7.853e-4,1.370e-3,8.073e-3]
 
 q_squared, energies, thetas, cross_sections, total_errors = partition(q_squared, energies, thetas, cross_sections, uncertainties)
+eps_original = []
+red_original = []
 eps = []
 red = []
 chi_squares = []
 samples = 10000
 
-#just do one Q^2 for now
-for i in range(len(q_squared[0])):
-	q2 = q_squared[0][i]
-	energy = energies[0][i]
-	theta = thetas[0][i]
-	cross_section = cross_sections[0][i]
-	error = total_errors[0][i]
+# TEST: make 30 points along a line, then randomize
+if '-t' in sys.argv:
+	test = True
+else:
+	test = False
+if (test):
+	a = random.random()
+	b = random.random()
+	x = linspace(1,10,num=30)
+	y = a*x + b
+	total_errors = [[0.002]*samples]*30
+	for i in range(len(total_errors)):
+		eps.append([x[i]]*samples)
+		red.append(random.normal(y[i], total_errors[i][0], samples))
+	eps=array(eps)
+	red=array(red)
 
-	epsilon, tau, reduced = rosenbluth(q2, energy, theta, cross_section)
+else:
+	#just do one Q^2 for now
+	for i in range(len(q_squared[0])):
+		q2 = q_squared[0][i]
+		energy = energies[0][i]
+		theta = thetas[0][i]
+		cross_section = cross_sections[0][i]
+		error = total_errors[0][i]
+		epsilon, tau, reduced, error = rosenbluth(q2, energy, theta, cross_section, error)
+		eps_original.append(epsilon)
+		red_original.append(reduced)
+		eps.append([epsilon]*samples)
+		red.append(random.normal(reduced, error, samples))
 
-	eps.append([epsilon]*samples)
-	red.append(random.normal(reduced, 0.02, samples))
+	#try randomizing from first fit function (2 points at first epsilon, etc.)
+	reg = stats.linregress(eps_original, red_original)
+	eps,red=[],[]
+	for i in range(len(q_squared[0])):
+		epsilon = eps_original[i]
+		print(epsilon)
+		eps.append([epsilon]*samples)
+		red.append(random.normal(reg[0]*epsilon+reg[1], total_errors[0][i], samples))
+
 
 eps = array(eps)
 red = array(red)
+
 
 for i in range(samples):
 
 	eps_samples = eps[:,i]
 	red_samples = red[:,i]
-	print(eps_samples)
 	reg = stats.linregress(eps_samples, red_samples)
 	chi_squares.append(chi_square(eps_samples, red_samples, total_errors[0], lambda x: reg[0]*x+reg[1]))
 
@@ -79,7 +111,12 @@ plt.figure(figsize=(12,9))
 ax = plt.subplot(111)
 ax.set_xlabel(r'$\chi^2$', fontsize=30)
 ax.set_ylabel(r'Frequency', fontsize=30)
-plt.hist(chi_squares, bins=100, normed=1, facecolor='gray', alpha=0.5, linewidth=2, histtype="stepfilled")
+plt.xticks(fontsize=20)
+plt.yticks(fontsize=20)
+if test:
+	plt.hist(chi_squares, bins=100, normed=1, facecolor='gray', alpha=0.5, linewidth=2, histtype="stepfilled")
+else:
+	plt.hist(chi_squares, bins=100, normed=1, facecolor='gray', alpha=0.5, linewidth=2, histtype="stepfilled")
 
 plt.show()
 

@@ -13,7 +13,7 @@ fsc = 0.00729735256
 mass = 0.938 # GeV
 
 # returns epsilon, tau, and reduced cross section (can be used to calculate form factors with linear fit)
-def rosenbluth(q_squared, energy, theta, cross_section):
+def rosenbluth(q_squared, energy, theta, cross_section, error):
 	
 	tau = q_squared / 4 / mass ** 2
 	epsilon = (1 + 2 * (1 + tau) * tan(deg2rad(theta)/2) ** 2) ** -1
@@ -22,7 +22,8 @@ def rosenbluth(q_squared, energy, theta, cross_section):
 	# 1 GeV^-2 = 0.389 mb
 	ideal_scattering = (1 ** 2 * fsc ** 2 * cos(deg2rad(theta / 2)) ** 2) / (4 * energy ** 2 * sin(deg2rad(theta / 2)) ** 4) * 0.389 * 1e6 * eta ** -1
 	reduced = cross_section/ideal_scattering * epsilon * (1 + tau)
-	return (epsilon, tau, reduced)
+	error = error/ideal_scattering * epsilon * (1 + tau)
+	return (epsilon, tau, reduced, error)
 
 # calculates the form factors based on epsilon and reduced cross section
 # add true weights from table in notebook
@@ -170,9 +171,11 @@ if __name__ == '__main__':
 				energy = energies[i][j]
 				theta = thetas[i][j]
 				cross_section = cross_sections[i][j]
-				# total_errors.append(uncertainties[i][j])
+				error = total_errors[i][j]
 
-				result = rosenbluth(q2, energy, theta, cross_section)
+				result = rosenbluth(q2, energy, theta, cross_section, error)
+				# error adjusted with reduced cross section
+				total_errors[i][j] = result[3]
 				tau = result[1]
 
 				a.append(result[0])
@@ -197,7 +200,7 @@ if __name__ == '__main__':
 				s = [a[j]]*samples
 				eps.append(s)
 				#reduced
-				s = random.normal(b[j], total_errors[i][j]/100, samples)
+				s = random.normal(b[j], total_errors[i][j], samples)
 				red.append(s)
 			eps = array(eps)
 			red = array(red)
