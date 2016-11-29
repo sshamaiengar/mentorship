@@ -94,11 +94,15 @@ def plot_form_factors(ge2_vals, gm2_vals, q2):
 	ax1.set_ylabel(r'Frequency', fontsize=30)
 	ax1.annotate('$Q^2 = %.3f$ \n $\mu = %f$ \n $\sigma = %f$' % (q2, mu1, sigma1), xy=(mu1, 0), xycoords='data',
 		xytext=(0.6, 0.7), textcoords="axes fraction", verticalalignment='bottom', horizontalalignment='left', fontsize=30)
+	ax1.text(0.5, 1.05, 'a', transform=ax1.transAxes, 
+            size=40, weight='bold')
 	# ax1.annotate('$2\sigma$', xy=(mu1, ax1.get_ylim()[1]/3), xycoords='data', xytext=(mu1, ax1.get_ylim()[1]/3), textcoords='data', horizontalalignment='center', fontsize=30)
 	ax2.set_xlabel(r'$G_M^2$', fontsize=30)
 	ax2.set_ylabel(r'Frequency', fontsize=30)
 	ax2.annotate('$Q^2 = %.3f$ \n $\mu = %f$ \n $\sigma = %f$' % (q2, mu2, sigma2), xy=(mu2, 0), xycoords='data',
-		xytext=(0.6, 0.7), textcoords="axes fraction", verticalalignment='bottom', horizontalalignment='left', fontsize=30)
+		xytext=(0.65, 0.7), textcoords="axes fraction", verticalalignment='bottom', horizontalalignment='left', fontsize=30)
+	ax2.text(0.5, 1.05, 'b', transform=ax2.transAxes, 
+            size=40, weight='bold')
 	# ax2.annotate('$2\sigma$', xy=(mu2, ax2.get_ylim()[1]/3), xycoords='data', xytext=(mu2, ax2.get_ylim()[1]/3), textcoords='data', horizontalalignment='center', fontsize=30)
 	plt.show()
 	return sigma1, sigma2

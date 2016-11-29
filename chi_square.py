@@ -31,6 +31,7 @@ if len(sys.argv) > 1:
 			# skip header row
 			next(data)
 			for row in data:
+				# print("{0} & {1} & {2} & \({3}\\times10^{4}\) & \({5}\\times10^{6}\) \\\\".format(row[0], row[1], row[2], row[3].split("e")[0], "{"+row[3].split("e")[1]+"}",row[4].split("e")[0], "{"+row[4].split("e")[1]+"}"))
 				q_squared.append(float(row[0]))
 				energies.append(float(row[1]))
 				thetas.append(float(row[2]))
@@ -72,6 +73,8 @@ if (test):
 
 else:
 	#just do one Q^2 for now
+
+	#looks redundant with next for loop but it has to go through once to get all the epsilons and reduced for the fit
 	for i in range(len(q_squared[0])):
 		q2 = q_squared[0][i]
 		energy = energies[0][i]
@@ -79,29 +82,50 @@ else:
 		cross_section = cross_sections[0][i]
 		error = total_errors[0][i]
 		epsilon, tau, reduced, error = rosenbluth(q2, energy, theta, cross_section, error)
+		total_errors[0][i] = error
+		error = total_errors[0][i]
 		eps_original.append(epsilon)
 		red_original.append(reduced)
-		eps.append([epsilon]*samples)
-		red.append(random.normal(reduced, error, samples))
+		# print("(" + str(epsilon) + ", " + str(reduced) + ")" + str(error))
 
 	#try randomizing from first fit function (2 points at first epsilon, etc.)
 	reg = stats.linregress(eps_original, red_original)
+	print(eps_original, red_original)
+
+	#distribution using each of equal-epsilon points
+	#remove one at a time the equal-angle points, then uncomment below and run
+
+	# eps_original.insert(0,eps_original[0])
+	# red_original.insert(0,red_original[0])
+	# total_errors[0].insert(0, total_errors[0][0])
+	# q_squared[0].append(1.75)
+	# print(eps_original)
+	# print(red_original)
+
 	eps,red=[],[]
 	for i in range(len(q_squared[0])):
 		epsilon = eps_original[i]
-		print(epsilon)
+		# print(epsilon, red_original[i], total_errors[0][i])
 		eps.append([epsilon]*samples)
 		red.append(random.normal(reg[0]*epsilon+reg[1], total_errors[0][i], samples))
-
 
 eps = array(eps)
 red = array(red)
 
+#reset monte carlo points log file
+with open('monte_carlo_points.csv','w') as out:
+		writer = csv.writer(out, delimiter=' ')
 
 for i in range(samples):
 
 	eps_samples = eps[:,i]
 	red_samples = red[:,i]
+	# for logging the points 
+	
+	if i < 100:
+		with open('monte_carlo_points.csv', 'a') as out:
+				writer = csv.writer(out, delimiter=' ')
+				writer.writerow(["({},{})".format(eps_samples[c], red_samples[c]) for c in range(len(eps_samples))])
 	reg = stats.linregress(eps_samples, red_samples)
 	chi_squares.append(chi_square(eps_samples, red_samples, total_errors[0], lambda x: reg[0]*x+reg[1]))
 
