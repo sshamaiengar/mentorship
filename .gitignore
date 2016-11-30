@@ -1,2 +1,6 @@
 # Figures
 *.png
+*.sublime-project
+*.sublime-workspace
+monte_carlo_points.csv
+out.csv

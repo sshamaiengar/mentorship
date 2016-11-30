@@ -2,7 +2,7 @@
 
 # test working of chi square distribution with ~30 points along a straight line
 
-from numpy import deg2rad, linalg, tan, sin, cos, random, array, std, mean, where, linspace
+from numpy import random, array, linspace, diff
 import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
 import scipy.stats as stats
@@ -53,12 +53,14 @@ eps = []
 red = []
 chi_squares = []
 samples = 10000
+actual_chi_squared = 0.0
 
 # TEST: make 30 points along a line, then randomize
 if '-t' in sys.argv:
 	test = True
 else:
 	test = False
+
 if (test):
 	a = random.random()
 	b = random.random()
@@ -90,17 +92,18 @@ else:
 
 	#try randomizing from first fit function (2 points at first epsilon, etc.)
 	reg = stats.linregress(eps_original, red_original)
-	print(eps_original, red_original)
+	actual_chi_squared = chi_square(eps_original, red_original, total_errors[0], lambda x: reg[0]*x+reg[1])
+	# print(eps_original, red_original)
 
-	#distribution using each of equal-epsilon points
+	#distribution using each of equal-epsilon points, based on fit of only three points
 	#remove one at a time the equal-angle points, then uncomment below and run
 
-	# eps_original.insert(0,eps_original[0])
-	# red_original.insert(0,red_original[0])
-	# total_errors[0].insert(0, total_errors[0][0])
-	# q_squared[0].append(1.75)
-	# print(eps_original)
-	# print(red_original)
+	eps_original.insert(0,eps_original[0])
+	red_original.insert(0,red_original[0])
+	total_errors[0].insert(0, total_errors[0][0])
+	q_squared[0].append(1.75)
+
+	#-----------------------------------------------------
 
 	eps,red=[],[]
 	for i in range(len(q_squared[0])):
@@ -137,10 +140,26 @@ ax.set_xlabel(r'$\chi^2$', fontsize=30)
 ax.set_ylabel(r'Frequency', fontsize=30)
 plt.xticks(fontsize=20)
 plt.yticks(fontsize=20)
+area = 0.0
 if test:
-	plt.hist(chi_squares, bins=100, normed=1, facecolor='gray', alpha=0.5, linewidth=2, histtype="stepfilled")
-else:
-	plt.hist(chi_squares, bins=100, normed=1, facecolor='gray', alpha=0.5, linewidth=2, histtype="stepfilled")
+	vals, bins, _ = plt.hist(chi_squares, bins=100, facecolor='gray', alpha=0.5, linewidth=2, histtype="stepfilled")
 
+else:
+	vals, bins, _ = plt.hist(chi_squares, bins=100, facecolor='gray', alpha=0.5, linewidth=2, histtype="stepfilled")
+	
+	# total area of histogram
+	area = sum(diff(bins)*vals)
+	# print(area)
+	
+	# area of histogram to actual chi squared
+	lastBin = 0
+	while bins[lastBin] <= actual_chi_squared:
+		lastBin+=1
+
+	# print percentage from partial/total area
+	partialArea = sum(diff(bins[:lastBin])*vals[:lastBin-1])
+	print("{:.4f} %".format(100*partialArea/area))
 plt.show()
+
+
 
