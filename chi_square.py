@@ -31,6 +31,9 @@ if len(sys.argv) > 1:
 			# skip header row
 			next(data)
 			for row in data:
+				# allow comments
+				if not row or "".join(row)[0] == "#":
+					continue
 				# print("{0} & {1} & {2} & \({3}\\times10^{4}\) & \({5}\\times10^{6}\) \\\\".format(row[0], row[1], row[2], row[3].split("e")[0], "{"+row[3].split("e")[1]+"}",row[4].split("e")[0], "{"+row[4].split("e")[1]+"}"))
 				q_squared.append(float(row[0]))
 				energies.append(float(row[1]))
@@ -98,10 +101,10 @@ else:
 	#distribution using each of equal-epsilon points, based on fit of only three points
 	#remove one at a time the equal-angle points, then uncomment below and run
 
-	eps_original.insert(0,eps_original[0])
-	red_original.insert(0,red_original[0])
-	total_errors[0].insert(0, total_errors[0][0])
-	q_squared[0].append(1.75)
+	# eps_original.insert(0,eps_original[0])
+	# red_original.insert(0,red_original[0])
+	# total_errors[0].insert(0, total_errors[0][0])
+	# q_squared[0].append(1.75)
 
 	#-----------------------------------------------------
 

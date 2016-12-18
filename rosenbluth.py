@@ -1,5 +1,15 @@
 # -*- coding: utf-8 -*-
 
+# shift 1.6 gev reduced cross sections by *0.958 and errors by 0.958 -> new dataset
+# then run program
+# use dipole function (on p.2) to compare answers (on p.22)
+# problem could be 8 gev spec at 90 degs
+# try leaving those two runs out
+# compare answers
+# ALSO
+# use asymmetry data to get formula for G_E, then substitute into reduced cross section and do one-parameter fit
+
+
 from numpy import deg2rad, linalg, tan, sin, cos, random, array, std, mean, where
 import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
@@ -66,7 +76,7 @@ def plot_form_factors(ge2_vals, gm2_vals, q2):
 
 	# f1, axes = plt.subplots(1, 2, figsize=(20,10))
 	plt.delaxes()
-	plt.figure(figsize=(24,9))
+	plt.figure(figsize=(24,10))
 	# ax1 = f1.add_subplot(121)
 	ax1 = plt.subplot(121)
 	# ax1.hist(ge2, bins=50, facecolor='red')
@@ -76,7 +86,7 @@ def plot_form_factors(ge2_vals, gm2_vals, q2):
 	y = mlab.normpdf(bins, mu1, sigma1)
 	plt.plot(bins, y, "-", color="black", linewidth=4)
 	plt.axvspan(mu1-sigma1, mu1+sigma1, color="white", alpha=0.5)
-	plt.xticks(fontsize=20)
+	plt.xticks(fontsize=20, rotation=30)
 	plt.yticks(fontsize=20)
 
 	# ax2 = f1.add_subplot(122)
@@ -87,23 +97,24 @@ def plot_form_factors(ge2_vals, gm2_vals, q2):
 	y = mlab.normpdf(bins, mu2, sigma2)
 	plt.plot(bins, y, "-", color="black", linewidth=4)
 	plt.axvspan(mu2-sigma2, mu2+sigma2, color="white", alpha=0.5)
-	plt.xticks(fontsize=20)
+	plt.xticks(fontsize=20, rotation=30)
 	plt.yticks(fontsize=20)
 
-	ax1.set_xlabel(r'$G_E^2$', fontsize=30)
-	ax1.set_ylabel(r'Frequency', fontsize=30)
+	ax1.set_xlabel(r'$G_E^2$', fontsize=30, labelpad=20)
+	ax1.set_ylabel(r'Frequency', fontsize=30, labelpad=20)
 	ax1.annotate('$Q^2 = %.3f$ \n $\mu = %f$ \n $\sigma = %f$' % (q2, mu1, sigma1), xy=(mu1, 0), xycoords='data',
 		xytext=(0.6, 0.7), textcoords="axes fraction", verticalalignment='bottom', horizontalalignment='left', fontsize=30)
 	ax1.text(0.5, 1.05, 'a', transform=ax1.transAxes, 
             size=40, weight='bold')
 	# ax1.annotate('$2\sigma$', xy=(mu1, ax1.get_ylim()[1]/3), xycoords='data', xytext=(mu1, ax1.get_ylim()[1]/3), textcoords='data', horizontalalignment='center', fontsize=30)
-	ax2.set_xlabel(r'$G_M^2$', fontsize=30)
-	ax2.set_ylabel(r'Frequency', fontsize=30)
+	ax2.set_xlabel(r'$G_M^2$', fontsize=30, labelpad=20)
+	ax2.set_ylabel(r'Frequency', fontsize=30, labelpad=20)
 	ax2.annotate('$Q^2 = %.3f$ \n $\mu = %f$ \n $\sigma = %f$' % (q2, mu2, sigma2), xy=(mu2, 0), xycoords='data',
 		xytext=(0.65, 0.7), textcoords="axes fraction", verticalalignment='bottom', horizontalalignment='left', fontsize=30)
 	ax2.text(0.5, 1.05, 'b', transform=ax2.transAxes, 
             size=40, weight='bold')
 	# ax2.annotate('$2\sigma$', xy=(mu2, ax2.get_ylim()[1]/3), xycoords='data', xytext=(mu2, ax2.get_ylim()[1]/3), textcoords='data', horizontalalignment='center', fontsize=30)
+	plt.subplots_adjust(bottom=0.15)
 	plt.show()
 	return sigma1, sigma2
 
@@ -129,6 +140,9 @@ if __name__ == '__main__':
 				# skip header row
 				next(data)
 				for row in data:
+					# allow comments
+					if not row or "".join(row)[0] == "#":
+						continue
 					q_squared.append(float(row[0]))
 					energies.append(float(row[1]))
 					thetas.append(float(row[2]))
@@ -178,6 +192,9 @@ if __name__ == '__main__':
 				error = total_errors[i][j]
 
 				result = rosenbluth(q2, energy, theta, cross_section, error)
+				## If want unnormalized 1.6 GeV data, then divide result[2] by 0.958 here
+				# ONLY for 1.6 GeV data though. Need an if ...: to check
+
 				# error adjusted with reduced cross section
 				total_errors[i][j] = result[3]
 				tau = result[1]
