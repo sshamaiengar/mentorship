@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# shift 1.6 gev reduced cross sections by *0.958 and errors by 0.958 -> new dataset
-# then run program
-# use dipole function (on p.2) to compare answers (on p.22)
+
 # problem could be 8 gev spec at 90 degs
 # try leaving those two runs out
 # compare answers
@@ -20,19 +18,29 @@ import csv
 
 # constants
 fsc = 0.00729735256
+# mass = 0.93827 # GeV
 mass = 0.938 # GeV
+# pmm = 2.793 # proton magnetic moment
+pmm = 2.79 # proton magnetic moment
+
 
 # returns epsilon, tau, and reduced cross section (can be used to calculate form factors with linear fit)
-def rosenbluth(q_squared, energy, theta, cross_section, error):
+def rosenbluth(q_squared, energy, theta, cross_section, error, energy_prime=None):
 	
 	tau = q_squared / 4 / mass ** 2
 	epsilon = (1 + 2 * (1 + tau) * tan(deg2rad(theta)/2) ** 2) ** -1
 	eta = 1 + (energy / mass) * (1 - cos(deg2rad(theta)))
 
 	# 1 GeV^-2 = 0.389 mb
-	ideal_scattering = (1 ** 2 * fsc ** 2 * cos(deg2rad(theta / 2)) ** 2) / (4 * energy ** 2 * sin(deg2rad(theta / 2)) ** 4) * 0.389 * 1e6 * eta ** -1
-	reduced = cross_section/ideal_scattering * epsilon * (1 + tau)
-	error = error/ideal_scattering * epsilon * (1 + tau)
+	if energy_prime:
+		ideal_scattering = (1 ** 2 * fsc ** 2 * cos(deg2rad(theta / 2)) ** 2) / (4 * energy ** 2 * sin(deg2rad(theta / 2)) ** 4) * energy_prime/energy * 0.389 * 1e6
+		reduced = cross_section/ideal_scattering * epsilon * (1 + tau)
+		# reduced = cross_section * (1+tau)/5.18 * epsilon/tau * energy**3/energy_prime * sin(deg2rad(theta / 2)) ** 4/cos(deg2rad(theta / 2)) ** 2 * dipole_form_factor(q2) ** -2
+		error = error/ideal_scattering * epsilon * (1 + tau)
+	else:
+		ideal_scattering = (1 ** 2 * fsc ** 2 * cos(deg2rad(theta / 2)) ** 2) / (4 * energy ** 2 * sin(deg2rad(theta / 2)) ** 4) * 0.389 * 1e6 * eta ** -1
+		reduced = cross_section/ideal_scattering * epsilon * (1 + tau)
+		error = error/ideal_scattering * epsilon * (1 + tau)
 	return (epsilon, tau, reduced, error)
 
 # calculates the form factors based on epsilon and reduced cross section
@@ -43,12 +51,16 @@ def form_factors(epsilon, reduced):
 	return (regression[0], regression[1])
 
 # split data based on Q^2 to make separate calculations and plots
-def partition(q2, e, theta, cross_section, error):
+def partition(q2, e, theta, cross_section, error, e_prime=None):
 	q2_partitions = []
 	e_partitions = []
 	theta_partitions = []
 	cross_section_partitions = []
 	error_partitions = []
+
+	# if using data4.csv or dataset with E'
+	if e_prime:
+		e_prime_partitions = []
 	last_same = -1
 	for i in range(len(q2)-1):
 		if q2[i+1] != q2[i]:
@@ -57,12 +69,19 @@ def partition(q2, e, theta, cross_section, error):
 			theta_partitions.append(theta[last_same+1:i+1])
 			cross_section_partitions.append(cross_section[last_same+1:i+1])
 			error_partitions.append(error[last_same+1:i+1])
+			if e_prime:
+				e_prime_partitions.append(e_prime[last_same+1:i+1])
 			last_same = i
 	q2_partitions.append(q2[last_same+1:])
 	e_partitions.append(e[last_same+1:])
 	theta_partitions.append(theta[last_same+1:])
 	cross_section_partitions.append(cross_section[last_same+1:])
 	error_partitions.append(error[last_same+1:])
+
+	# if using data4.csv or dataset with E'
+	if e_prime:
+		e_prime_partitions.append(e_prime[last_same+1:])
+		return q2_partitions, e_partitions, theta_partitions, cross_section_partitions, error_partitions, e_prime_partitions
 	return q2_partitions, e_partitions, theta_partitions, cross_section_partitions, error_partitions
 
 
@@ -115,8 +134,11 @@ def plot_form_factors(ge2_vals, gm2_vals, q2):
             size=40, weight='bold')
 	# ax2.annotate('$2\sigma$', xy=(mu2, ax2.get_ylim()[1]/3), xycoords='data', xytext=(mu2, ax2.get_ylim()[1]/3), textcoords='data', horizontalalignment='center', fontsize=30)
 	plt.subplots_adjust(bottom=0.15)
-	plt.show()
+	# plt.show()
 	return sigma1, sigma2
+
+def dipole_form_factor(q2):
+	return (1+q2/0.71)**-2
 
 
 # only run this stuff if specifically executing this file
@@ -132,22 +154,45 @@ if __name__ == '__main__':
 		thetas = []
 		cross_sections = []
 		uncertainties = []
+		energies_prime = []
+
+		next_normalized = False
 
 		file = sys.argv[1]
+		
 		try:
-			with open(file, 'rb') as f:
+			with open(file, 'r') as f:
 				data = csv.reader(f, delimiter=" ")
 				# skip header row
 				next(data)
 				for row in data:
 					# allow comments
 					if not row or "".join(row)[0] == "#":
+						# only normalize 1.6 GeV data
+						if len(row) > 1 and "1.6" in row[1]:
+							next_normalized= True
+						else:
+							next_normalized = False
 						continue
+					
+
 					q_squared.append(float(row[0]))
 					energies.append(float(row[1]))
 					thetas.append(float(row[2]))
-					cross_sections.append(float(row[3]))
-					uncertainties.append(float(row[4]))
+
+					# specify a normalization factor as a command line argument
+					if next_normalized and len(sys.argv) > 2:
+						norm = float(sys.argv[2]) # 0.958, etc.
+					else:
+						# don't normalize
+						norm = 1
+
+					cross_sections.append(float(row[3])*norm)
+					# print("XS = " + str(float(row[3])*norm))
+					uncertainties.append(float(row[4])*norm)
+					# print("Err = " + str(float(row[4])*norm))
+					if len(row) == 6:
+						energies_prime.append(float(row[5]))
 		except IOError as e:
 			print(e)
 	else:
@@ -160,7 +205,7 @@ if __name__ == '__main__':
 	# reset output file
 	with open('out.csv','w') as out:
 		writer = csv.writer(out, delimiter=' ')
-		writer.writerow(['Q^2', 'G_E^2', 'σ_E', 'G_M^2', 'σ_M'])
+		writer.writerow(['Q^2', 'G_E^2', 'σ_E', 'G_M^2', 'σ_M', 'G_E/G_D', 'G_M/(μG_D)'])
 
 	# print(q_squared)
 	# print(energies)
@@ -173,13 +218,16 @@ if __name__ == '__main__':
 	b = []
 
 
-	#keep track of previous q^2 to make separate estimates of form factors
-
 	gm2_points = []
 	ge2_points = []
 	q2_vals = []
 
-	q_squared, energies, thetas, cross_sections, total_errors = partition(q_squared, energies, thetas, cross_sections, uncertainties)
+	# if not using data4.csv or dataset with E'
+	if not energies_prime:
+		q_squared, energies, thetas, cross_sections, total_errors = partition(q_squared, energies, thetas, cross_sections, uncertainties)
+	else:
+		q_squared, energies, thetas, cross_sections, total_errors, energies_prime = partition(q_squared, energies, thetas, cross_sections, uncertainties, energies_prime)
+	
 	for i in range(len(q_squared)):
 		if len(q_squared[i]) <= 1:
 			break
@@ -191,24 +239,40 @@ if __name__ == '__main__':
 				cross_section = cross_sections[i][j]
 				error = total_errors[i][j]
 
-				result = rosenbluth(q2, energy, theta, cross_section, error)
-				## If want unnormalized 1.6 GeV data, then divide result[2] by 0.958 here
-				# ONLY for 1.6 GeV data though. Need an if ...: to check
+				# if not using data4.csv or dataset with E'
+				if not energies_prime:
+					result = rosenbluth(q2, energy, theta, cross_section, error)
+					# result:
+					# [0] -> epsilon
+					# [1] -> tau
+					# [2] -> reduced
+					# [3] -> reduced error
 
-				# error adjusted with reduced cross section
-				total_errors[i][j] = result[3]
-				tau = result[1]
+					# error adjusted with reduced cross section
+					total_errors[i][j] = result[3]
+					tau = result[1]
+					epsilon = result[0]
 
-				a.append(result[0])
-				b.append(result[2])
-
+					a.append(result[0])
+					b.append(result[2])
+				else:
+					energy_prime = energies_prime[i][j]
+					result = rosenbluth(q2, energy, theta, cross_section, error, energy_prime)
+					total_errors[i][j] = result[3]
+					tau = result[1]
+					epsilon = result[0]
+					a.append(epsilon)
+					b.append(result[2])
 			regression = form_factors(a, b)
 			ge_squared = regression[0]
 			gm_squared = regression[1]/tau
 			print("Q^2 = " + str(q2))
-			print("G_e^2 = " + str(ge_squared))
-			print("G_m^2 = " + str(gm_squared))
-			print
+			
+			print("G_E^2 = " + str(ge_squared))
+			print("G_M^2 = " + str(gm_squared))
+			print("G_E / G_D = " + str(ge_squared**0.5/dipole_form_factor(q2)))
+			print("G_M / mu G_D = " + str(gm_squared**0.5/pmm/dipole_form_factor(q2)))
+				
 			# Monte Carlo simulation
 			# sample from normal distribution around reduced cross section and epsilon
 			eps = []
@@ -251,5 +315,6 @@ if __name__ == '__main__':
 			sigma1, sigma2 = plot_form_factors(ge2, gm2, q2)
 			with open('out.csv', 'a') as out:
 				writer = csv.writer(out, delimiter=' ')
-				writer.writerow([q2, ge_squared, sigma1, gm_squared, sigma2])
+				writer.writerow([q2, ge_squared, sigma1, gm_squared, sigma2, ge_squared**0.5/dipole_form_factor(q2), gm_squared**0.5/dipole_form_factor(q2)/pmm])
+				# writer.writerow([q2, ge_squared, sigma1, gm_squared, sigma2])
 
