@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-# problem could be 8 gev spec at 90 degs
-# try leaving those two runs out
-# compare answers
-# ALSO
-# use asymmetry data to get formula for G_E, then substitute into reduced cross section and do one-parameter fit
+# run with datafile and normalization factor (optional) as arguments
 
 
 from numpy import deg2rad, linalg, tan, sin, cos, random, array, std, mean, where
@@ -18,40 +14,91 @@ import csv
 
 # constants
 fsc = 0.00729735256
-# mass = 0.93827 # GeV
-mass = 0.938 # GeV
-# pmm = 2.793 # proton magnetic moment
-pmm = 2.79 # proton magnetic moment
+# mass = 0.93827 	# proton mass in GeV
+mass = 0.938 		# proton mass in GeV
+# pmm = 2.793 		# proton magnetic moment
+pmm = 2.79 			# proton magnetic moment
 
 
-# returns epsilon, tau, and reduced cross section (can be used to calculate form factors with linear fit)
 def rosenbluth(q_squared, energy, theta, cross_section, error, energy_prime=None):
+
+	""" Takes the constants used in the Rosenbluth formula and returns the computed variables
+
+	Args:
+		q_squared 		(float)	- The value of Q^2
+		energy 			(float)	- The beam energy in GeV
+		theta 			(float)	- The spectrometer angle in degrees
+		cross_section 	(float)	- The differential cross section in (nb/sr)
+		error 			(float)	- The total error
+		energy_prime 	(float)	- The (final) beam energy in GeV
+
+	Returns:
+		(tuple) - 
+			epsilon 		(float)	- The computed value of epsilon
+			tau 			(float)	- The computed value of tau
+			reduced 		(float)	- The computed value of the reduced cross section
+			error 			(float) - The computed error associated with the reduced cross section
+
+	"""
 	
 	tau = q_squared / 4 / mass ** 2
 	epsilon = (1 + 2 * (1 + tau) * tan(deg2rad(theta)/2) ** 2) ** -1
 	eta = 1 + (energy / mass) * (1 - cos(deg2rad(theta)))
 
-	# 1 GeV^-2 = 0.389 mb
+	
 	if energy_prime:
+		# 1 GeV^-2 = 0.389 mb
 		ideal_scattering = (1 ** 2 * fsc ** 2 * cos(deg2rad(theta / 2)) ** 2) / (4 * energy ** 2 * sin(deg2rad(theta / 2)) ** 4) * energy_prime/energy * 0.389 * 1e6
 		reduced = cross_section/ideal_scattering * epsilon * (1 + tau)
-		# reduced = cross_section * (1+tau)/5.18 * epsilon/tau * energy**3/energy_prime * sin(deg2rad(theta / 2)) ** 4/cos(deg2rad(theta / 2)) ** 2 * dipole_form_factor(q2) ** -2
 		error = error/ideal_scattering * epsilon * (1 + tau)
 	else:
+		# 1 GeV^-2 = 0.389 mb
 		ideal_scattering = (1 ** 2 * fsc ** 2 * cos(deg2rad(theta / 2)) ** 2) / (4 * energy ** 2 * sin(deg2rad(theta / 2)) ** 4) * 0.389 * 1e6 * eta ** -1
 		reduced = cross_section/ideal_scattering * epsilon * (1 + tau)
 		error = error/ideal_scattering * epsilon * (1 + tau)
 	return (epsilon, tau, reduced, error)
 
-# calculates the form factors based on epsilon and reduced cross section
-# add true weights from table in notebook
 def form_factors(epsilon, reduced):
+
+	""" Performs a linear regression of (epsilon, reduced cross section) data 
+		to get the proton electric and magnetic form factor values squared (Rosenbluth separation)
+
+	Args:
+		epsilon 		(list) - The values of epsilon
+		reduced			(list) - The values of the reduced cross sections
+
+	Returns:
+		(tuple) - 
+			(float) - The proton electric form factor squared (G_E^2)
+			(float) - The proton magnetic form factor squared (G_M^2)
+
+	"""
+
 	regression = stats.linregress(epsilon, reduced)
-	# returns slope, intercept
 	return (regression[0], regression[1])
 
-# split data based on Q^2 to make separate calculations and plots
 def partition(q2, e, theta, cross_section, error, e_prime=None):
+
+	""" Takes lists of cross section data (typically read from datafile) and 
+		splits them into sublists based on values of Q^2
+
+	Args:
+		q2 				(list) - The list of all Q^2 values
+		e 				(list) - The list of all beam energies
+		theta 			(list) - The list of all spectrometer angles
+		cross_section 	(list) - The list of all differential cross sections
+		error 			(list) - The list of all total errors associated with differential cross sections
+		e_prime 		(list) - The list of all final beam energies
+
+	Returns:
+		q2_partitions 				(list) - The list of lists of homogeneous values of Q^2
+		e_partitions 				(list) - The list of lists of beam energies corresponding to each Q^2
+		theta_partitions 			(list) - The list of lists of spectrometer angles corresponding to each Q^2
+		cross_section_partitions 	(list) - The list of lists of differential cross sections corresponding to each Q^2
+		error_partitions 			(list) - The list of lists of total errors of differential cross sections corresponding to each Q^2
+
+	"""
+
 	q2_partitions = []
 	e_partitions = []
 	theta_partitions = []
@@ -85,13 +132,20 @@ def partition(q2, e, theta, cross_section, error, e_prime=None):
 	return q2_partitions, e_partitions, theta_partitions, cross_section_partitions, error_partitions
 
 
-# returns uncertainties (sigma on gaussian fit of histogram) for ge2 and gm2 respectively
-def plot_form_factors(ge2_vals, gm2_vals, q2):
+def plot_form_factors(ge2_vals, gm2_vals, q2, save_path=None):
 
-	#increase font size on y axis label and numbers
-	# get rid of bars in between
-	# white background, remove title
-	# information about mu, sigma, in plot, not title
+	""" Plots the distributions of proton form factors for a given Q^2 side-by-side, based on Monte Carlo simulations
+
+	Args:
+		ge2_vals			(list) - The values of the electric form factor squared
+		gm2_vals 			(list) - The values of the magnetic form factor squared
+
+	Returns:
+		(tuple) - 
+			(float) - The uncertainty/standard deviation of the electric form factor measurements
+			(float) - The uncertainty/standard deviation of the magnetic form factor measurements
+
+	"""
 
 	# f1, axes = plt.subplots(1, 2, figsize=(20,10))
 	plt.delaxes()
@@ -134,11 +188,17 @@ def plot_form_factors(ge2_vals, gm2_vals, q2):
             size=40, weight='bold')
 	# ax2.annotate('$2\sigma$', xy=(mu2, ax2.get_ylim()[1]/3), xycoords='data', xytext=(mu2, ax2.get_ylim()[1]/3), textcoords='data', horizontalalignment='center', fontsize=30)
 	plt.subplots_adjust(bottom=0.15)
-	# plt.show()
+	if not save_path:
+		plt.show()
+	else:
+		plt.savefig(save_path+"/ff_q2_"+str(q2)+".png", bbox_inches="tight")
 	return sigma1, sigma2
 
 def dipole_form_factor(q2):
-	return (1+q2/0.71)**-2
+
+	""" Returns the value of the dipole form factor for a given Q^2 """
+
+	return (1 + q2 / 0.71) ** -2
 
 
 # only run this stuff if specifically executing this file
@@ -169,7 +229,7 @@ if __name__ == '__main__':
 					# allow comments
 					if not row or "".join(row)[0] == "#":
 						# only normalize 1.6 GeV data
-						if len(row) > 1 and "1.6" in row[1]:
+						if len(row) > 1 and ("1.6" in row[1] or "norm" in row[1]):
 							next_normalized= True
 						else:
 							next_normalized = False
@@ -188,9 +248,7 @@ if __name__ == '__main__':
 						norm = 1
 
 					cross_sections.append(float(row[3])*norm)
-					# print("XS = " + str(float(row[3])*norm))
 					uncertainties.append(float(row[4])*norm)
-					# print("Err = " + str(float(row[4])*norm))
 					if len(row) == 6:
 						energies_prime.append(float(row[5]))
 		except IOError as e:
@@ -253,6 +311,11 @@ if __name__ == '__main__':
 					tau = result[1]
 					epsilon = result[0]
 
+					# print("{:.3e} ----- {:.3e}".format(result[0],result[2]))
+					string = "{:.3e}".format(result[0]).split("e")
+					print(" & \\({}\\times10^{{{:d}}}\\)".format(string[0], int(string[1])), end='')
+					string = "{:.3e}".format(result[2]).split("e")
+					print(" & \\({}\\times10^{{{:d}}}\\)".format(string[0], int(string[1])))
 					a.append(result[0])
 					b.append(result[2])
 				else:
@@ -312,7 +375,7 @@ if __name__ == '__main__':
 			# ge2_points.append(ge2)
 			# gm2_points.append(gm2)
 			# q2_vals.append(q2)
-			sigma1, sigma2 = plot_form_factors(ge2, gm2, q2)
+			sigma1, sigma2 = plot_form_factors(ge2, gm2, q2, "Figures")
 			with open('out.csv', 'a') as out:
 				writer = csv.writer(out, delimiter=' ')
 				writer.writerow([q2, ge_squared, sigma1, gm_squared, sigma2, ge_squared**0.5/dipole_form_factor(q2), gm_squared**0.5/dipole_form_factor(q2)/pmm])
