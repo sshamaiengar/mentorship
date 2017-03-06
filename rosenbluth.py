@@ -10,9 +10,7 @@ import csv
 
 # constants
 fsc = 0.00729735256
-# mass = 0.93827 	# proton mass in GeV
 mass = 0.938 		# proton mass in GeV
-# pmm = 2.793 		# proton magnetic moment
 pmm = 2.79 			# proton magnetic moment
 
 
@@ -41,17 +39,9 @@ def rosenbluth(q_squared, energy, theta, cross_section, error, energy_prime=None
 	epsilon = (1 + 2 * (1 + tau) * tan(deg2rad(theta)/2) ** 2) ** -1
 	eta = 1 + (energy / mass) * (1 - cos(deg2rad(theta)))
 
-	
-	if energy_prime:
-		# 1 GeV^-2 = 0.389 mb
-		ideal_scattering = (1 ** 2 * fsc ** 2 * cos(deg2rad(theta / 2)) ** 2) / (4 * energy ** 2 * sin(deg2rad(theta / 2)) ** 4) * energy_prime/energy * 0.389 * 1e6
-		reduced = cross_section/ideal_scattering * epsilon * (1 + tau)
-		error = error/ideal_scattering * epsilon * (1 + tau)
-	else:
-		# 1 GeV^-2 = 0.389 mb
-		ideal_scattering = (1 ** 2 * fsc ** 2 * cos(deg2rad(theta / 2)) ** 2) / (4 * energy ** 2 * sin(deg2rad(theta / 2)) ** 4) * 0.389 * 1e6 * eta ** -1
-		reduced = cross_section/ideal_scattering * epsilon * (1 + tau)
-		error = error/ideal_scattering * epsilon * (1 + tau)
+	mott_cross_section = (1 ** 2 * fsc ** 2 * cos(deg2rad(theta / 2)) ** 2) / (4 * energy ** 2 * sin(deg2rad(theta / 2)) ** 4) * 0.389 * 1e6 * eta ** -1
+	reduced = cross_section/mott_cross_section * epsilon * (1 + tau)
+	error = error/mott_cross_section * epsilon * (1 + tau)
 	return (epsilon, tau, reduced, error)
 
 def form_factors(epsilon, reduced):
@@ -66,7 +56,7 @@ def form_factors(epsilon, reduced):
 	Returns:
 		(tuple) - 
 			(float) - The proton electric form factor squared (G_E^2)
-			(float) - The proton magnetic form factor squared (G_M^2)
+			(float) - The proton magnetic form factor squared times tau (G_M^2)
 
 	"""
 
@@ -101,9 +91,6 @@ def partition(q2, e, theta, cross_section, error, e_prime=None):
 	cross_section_partitions = []
 	error_partitions = []
 
-	# if using data4.csv or dataset with E'
-	if e_prime:
-		e_prime_partitions = []
 	last_same = -1
 	for i in range(len(q2)-1):
 		if q2[i+1] != q2[i]:
@@ -112,8 +99,6 @@ def partition(q2, e, theta, cross_section, error, e_prime=None):
 			theta_partitions.append(theta[last_same+1:i+1])
 			cross_section_partitions.append(cross_section[last_same+1:i+1])
 			error_partitions.append(error[last_same+1:i+1])
-			if e_prime:
-				e_prime_partitions.append(e_prime[last_same+1:i+1])
 			last_same = i
 	q2_partitions.append(q2[last_same+1:])
 	e_partitions.append(e[last_same+1:])
@@ -121,10 +106,6 @@ def partition(q2, e, theta, cross_section, error, e_prime=None):
 	cross_section_partitions.append(cross_section[last_same+1:])
 	error_partitions.append(error[last_same+1:])
 
-	# if using data4.csv or dataset with E'
-	if e_prime:
-		e_prime_partitions.append(e_prime[last_same+1:])
-		return q2_partitions, e_partitions, theta_partitions, cross_section_partitions, error_partitions, e_prime_partitions
 	return q2_partitions, e_partitions, theta_partitions, cross_section_partitions, error_partitions
 
 
@@ -190,7 +171,6 @@ def dipole_form_factor(q2):
 	return (1 + q2 / 0.71) ** -2
 
 
-
 # won't run if importing above functions
 if __name__ == '__main__':
 
@@ -201,8 +181,8 @@ if __name__ == '__main__':
 		thetas = []
 		cross_sections = []
 		uncertainties = []
-		energies_prime = []
 
+		# keeps track of which cross sections in the data to normalize based on annotations
 		next_normalized = False
 
 		file = sys.argv[1]
@@ -236,11 +216,10 @@ if __name__ == '__main__':
 
 					cross_sections.append(float(row[3])*norm)
 					uncertainties.append(float(row[4])*norm)
-					if len(row) == 6:
-						energies_prime.append(float(row[5]))
 		except IOError as e:
 			print(e)
 	else:
+		# default/test values if no datafile specified
 		q_squared = [4.0,4.0,4.0,4.0,4.0]
 		energies = [3.4, 3.956, 4.507, 5.507, 9.8]
 		thetas = [57.572, 43.707, 35.592, 26.823,13.248]
@@ -256,21 +235,19 @@ if __name__ == '__main__':
 	a = []
 	b = []
 
-
+	# 
 	gm2_points = []
 	ge2_points = []
 	q2_vals = []
 
-	# if not using data4.csv or dataset with E'
-	if not energies_prime:
-		q_squared, energies, thetas, cross_sections, total_errors = partition(q_squared, energies, thetas, cross_sections, uncertainties)
-	else:
-		q_squared, energies, thetas, cross_sections, total_errors, energies_prime = partition(q_squared, energies, thetas, cross_sections, uncertainties, energies_prime)
+	# get lists of lists of values for separate Q^2
+	q_squared, energies, thetas, cross_sections, total_errors = partition(q_squared, energies, thetas, cross_sections, uncertainties)
 	
 	for i in range(len(q_squared)):
 		if len(q_squared[i]) <= 1:
 			break
 		else:
+			# for each Q^2, calculate form factors and use Monte Carlo to calculate errors (uncertainties)
 			for j in range(len(q_squared[i])):
 				q2 = q_squared[i][j]
 				energy = energies[i][j]
@@ -278,34 +255,21 @@ if __name__ == '__main__':
 				cross_section = cross_sections[i][j]
 				error = total_errors[i][j]
 
-				# if not using data4.csv or dataset with E'
-				if not energies_prime:
-					result = rosenbluth(q2, energy, theta, cross_section, error)
-					# result:
-					# [0] -> epsilon
-					# [1] -> tau
-					# [2] -> reduced
-					# [3] -> reduced error
+				result = rosenbluth(q2, energy, theta, cross_section, error)
+				# result:
+				# [0] -> epsilon
+				# [1] -> tau
+				# [2] -> reduced
+				# [3] -> reduced error
 
-					# error adjusted with reduced cross section
-					total_errors[i][j] = result[3]
-					tau = result[1]
-					epsilon = result[0]
+				# error adjusted with reduced cross section
+				total_errors[i][j] = result[3]
+				tau = result[1]
+				epsilon = result[0]
 
-					# string = "{:.3e}".format(result[0]).split("e")
-					# print(" & \\({}\\times10^{{{:d}}}\\)".format(string[0], int(string[1])), end='')
-					# string = "{:.3e}".format(result[2]).split("e")
-					# print(" & \\({}\\times10^{{{:d}}}\\)".format(string[0], int(string[1])))
-					a.append(result[0])
-					b.append(result[2])
-				else:
-					energy_prime = energies_prime[i][j]
-					result = rosenbluth(q2, energy, theta, cross_section, error, energy_prime)
-					total_errors[i][j] = result[3]
-					tau = result[1]
-					epsilon = result[0]
-					a.append(epsilon)
-					b.append(result[2])
+				a.append(result[0])
+				b.append(result[2])
+
 			regression = form_factors(a, b)
 			ge_squared = regression[0]
 			gm_squared = regression[1]/tau
@@ -325,10 +289,10 @@ if __name__ == '__main__':
 			gm2 = []
 			samples = 10000
 			for j in range(len(a)):
-				#epsilon
+				# put values of epsilon into rows (not randomized)
 				s = [a[j]]*samples
 				eps.append(s)
-				#reduced
+				# put randomized values of reduced cross sections into rows
 				s = random.normal(b[j], total_errors[i][j], samples)
 				red.append(s)
 			eps = array(eps)
@@ -336,24 +300,28 @@ if __name__ == '__main__':
 
 
 			for j in range(samples):
-				# accessing i-th column of matrix
+				# accessing i-th column of matrix (i-th set of epsilons and randomized reduced cross sections)
 				eps_samples = eps[:,j]
 				red_samples = red[:,j]
+
+				# recalculate form factors
 				res = form_factors(eps_samples, red_samples)
 
-				#negative slope of fit becomes 0
+				# negative slope of fit becomes 0
 				if res[0] < 0:
 					ge2.append(res[0])
 					pass
 				else:
-
 					#divide out tau
 					ge2.append(res[0])
+
 				gm2.append(res[1]/tau)
 
+			# clear the lists from Monte Carlo	
 			a = []
 			b = []
 			
+			# log and plot results
 			sigma1, sigma2 = plot_form_factors(ge2, gm2, q2, "Figures")
 			with open('out.csv', 'a') as out:
 				writer = csv.writer(out, delimiter=' ')

@@ -75,12 +75,14 @@ if len(sys.argv) > 1:
 	except IOError as e:
 		print(e)
 else:
+	# default/test values if no datafile specified
 	q_squared = [4.0,4.0,4.0,4.0,4.0]
 	energies = [3.4, 3.956, 4.507, 5.507, 9.8]
 	thetas = [57.572, 43.707, 35.592, 26.823,13.248]
 	cross_sections = [1.297e-2, 2.77e-2, 4.929e-2, 1.023e-1, 6.18e-1]
 	uncertainties = [2.243e-4,4.407e-4,7.853e-4,1.370e-3,8.073e-3]
 
+# get lists of lists of values for separate Q^2
 q_squared, energies, thetas, cross_sections, total_errors = partition(q_squared, energies, thetas, cross_sections, uncertainties)
 eps_original = []
 red_original = []
@@ -121,6 +123,7 @@ else:
 		samples = 10000
 		actual_chi_squared = 0.0
 
+		# store all the values once to enable linear fitting
 		for i in range(len(q_squared[j])):
 			q2 = q_squared[j][i]
 			energy = energies[j][i]
@@ -132,15 +135,16 @@ else:
 			error = total_errors[j][i]
 			eps_original.append(epsilon)
 			red_original.append(reduced)
-			# print("(" + str(epsilon) + ", " + str(reduced) + ")" + str(error))
 
-		#try randomizing from first fit function (2 points at first epsilon, etc.)
+		# linear fit of epsilons and reduced cross sections
 		reg = stats.linregress(eps_original, red_original)
+
+		# calculate actual chi squared based on fit
 		actual_chi_squared = chi_square(eps_original, red_original, total_errors[j], lambda x: reg[0]*x+reg[1])
 		# print(eps_original, red_original)
 
-		#distribution using each of equal-epsilon points, based on fit of only three points
-		#remove one at a time the equal-angle points, then uncomment below and run
+		# distribution using each of equal-epsilon points, based on fit of only three points
+		# remove one at a time the equal-angle points, then uncomment below and run
 
 		# eps_original.insert(0,eps_original[0])
 		# red_original.insert(0,red_original[0])
@@ -149,34 +153,39 @@ else:
 
 		#-----------------------------------------------------
 
+		# clear the lists of epsilon and reduced cross section
 		eps,red=[],[]
 		for i in range(len(q_squared[j])):
 			epsilon = eps_original[i]
-			# print(epsilon, red_original[i], total_errors[j][i])
+
+			# put values of epsilon into rows (not randomized)
 			eps.append([epsilon]*samples)
+			# put randomized values of reduced cross sections into rows
 			red.append(random.normal(reg[0]*epsilon+reg[1], total_errors[j][i], samples))
 
 		eps = array(eps)
 		red = array(red)
 
-		#reset monte carlo points log file
+		# reset monte carlo points log file
 		with open('monte_carlo_points.csv','w') as out:
 				writer = csv.writer(out, delimiter=' ')
 
 		for i in range(samples):
-
+			# accessing i-th column of matrix (i-th set of epsilons and randomized reduced cross sections)
 			eps_samples = eps[:,i]
 			red_samples = red[:,i]
-			# for logging the points 
 			
+			# log some of the randomized points to check that everything is working properly
 			if i < 100:
 				with open('monte_carlo_points.csv', 'a') as out:
 						writer = csv.writer(out, delimiter=' ')
 						writer.writerow(["({},{})".format(eps_samples[c], red_samples[c]) for c in range(len(eps_samples))])
+			# refit
 			reg = stats.linregress(eps_samples, red_samples)
+			# calculate new chi-squared value
 			chi_squares.append(chi_square(eps_samples, red_samples, total_errors[j], lambda x: reg[0]*x+reg[1]))
 
-		#plot chi square distribution
+		# plot chi square distribution
 		plt.delaxes()
 		fig = plt.figure(figsize=(12,9))
 		rc('font',**{'family':'serif'})
@@ -197,9 +206,8 @@ else:
 			
 			# total area of histogram
 			area = sum(diff(bins)*vals)
-			# print(area)
 			
-			# area of histogram to actual chi squared
+			# area of histogram as integral from 0 to actual chi squared value
 			lastBin = 0
 			while bins[lastBin] <= actual_chi_squared:
 				lastBin+=1
@@ -207,7 +215,7 @@ else:
 					lastBin-=1
 					break
 
-			# print percentage from partial/total area
+			# print percentage, partial/total area
 			partialArea = sum(diff(bins[:lastBin])*vals[:lastBin-1])
 			print(actual_chi_squared)
 			print("{:.4f} %".format(100*partialArea/area))
