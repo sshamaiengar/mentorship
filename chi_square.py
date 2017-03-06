@@ -13,6 +13,20 @@ from rosenbluth import rosenbluth, partition
 
 #x = epsilon, y = reduced, fit_function = lambda x: a*x + b
 def chi_square(x, y, error, fit_function):
+
+	""" Calculate the chi-squared statistic for a set of reduced cross section and epsilon values.
+
+	Arguments:
+		x 				(list) - Epsilon values
+		y 				(list) - Reduced cross section values
+		error 			(list) - Errors associated with reduced cross sections
+		fit_function	(lambda) - Function to calculate expected reduced cross section value given epsilon
+
+	Returns:
+		sum				(float) - The calculated chi-square statistic
+
+	"""
+
 	vals = []
 	for i in range(len(x)):
 		vals.append((fit_function(x[i]) - y[i])**2/error[i]**2)
@@ -26,21 +40,7 @@ if len(sys.argv) > 1:
 	uncertainties = []
 
 	file = sys.argv[1]
-	# try:
-	# 	with open(file, 'r') as f:
-	# 		data = csv.reader(f, delimiter=" ")
-	# 		# skip header row
-	# 		next(data)
-	# 		for row in data:
-	# 			# allow comments
-	# 			if not row or "".join(row)[0] == "#":
-	# 				continue
-	# 			# print("{0} & {1} & {2} & \({3}\\times10^{4}\) & \({5}\\times10^{6}\) \\\\".format(row[0], row[1], row[2], row[3].split("e")[0], "{"+row[3].split("e")[1]+"}",row[4].split("e")[0], "{"+row[4].split("e")[1]+"}"))
-	# 			q_squared.append(float(row[0]))
-	# 			energies.append(float(row[1]))
-	# 			thetas.append(float(row[2]))
-	# 			cross_sections.append(float(row[3]))
-	# 			uncertainties.append(float(row[4]))
+
 	try:
 		with open(file, 'r') as f:
 			data = csv.reader(f, delimiter=" ")
@@ -49,7 +49,7 @@ if len(sys.argv) > 1:
 			for row in data:
 				# allow comments
 				if not row or "".join(row)[0] == "#":
-					# only normalize 1.6 GeV data
+					# only normalize 1.6 GeV data or 8 GeV where angle ~90
 					if len(row) > 1 and ("1.6" in row[1] or "norm" in row[1]):
 						next_normalized= True
 					else:
@@ -194,9 +194,7 @@ else:
 
 		else:
 			vals, bins, _ = plt.hist(chi_squares, bins=100, facecolor='gray', alpha=1.0, linewidth=2, histtype="stepfilled", normed=True)
-			# weights = ones_like(chi_squares)/float(len(chi_squares))
-			# vals, bins, _ = plt.hist(chi_squares, weights=weights, bins=100, alpha=1.0, linewidth=2, histtype="stepfilled", normed=0, facecolor="gray")
-			# plt.axvspan(0, actual_chi_squared, color="white", alpha=0.5)
+			
 			# total area of histogram
 			area = sum(diff(bins)*vals)
 			# print(area)

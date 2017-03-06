@@ -13,20 +13,45 @@ gm_error = []
 q2 = []
 
 def marker():
+
+	""" Cycles through markers to use when plotting the form factors
+
+	Yields:
+		s		(string) - The matplotlib symbol for the next marker to use
+
+	"""
+
 	syms = ['s', 'o', '^']
 	while True:
 		for s in syms:
 			yield s
 
 def error(ff2, error2):
+
+	""" Calculates the error associated with the form factor given the form factor squared and its error
+
+	Arguments:
+		ff2				(float) - The form factor squared
+		error2 			(float) - The error associated with the form factor squared
+
+	Returns:
+		(float) The error associated with the form factor 
+
+	"""
+
 	upper_bound_squared = ff2 + error2
 	upper_bound = upper_bound_squared ** 0.5
 	ff = ff2 ** 0.5
 	return upper_bound - ff
 
 if len(sys.argv) > 1:
+
+	# read from 1 or more results files within the Figures subdirectory
 	files = sys.argv[1:]
+
 	for i in range(len(files)):
+
+		# store the values from each file in lists of lists
 		ge.append([])
 		gm.append([])
 		ge_error.append([])
@@ -48,21 +73,13 @@ if len(sys.argv) > 1:
 					ge_error[i].append(error(float(row[1])/gd**2, float(row[2]))/gd**2)
 					gm[i].append(float(row[3])**0.5/gd)
 					gm_error[i].append(error(float(row[3])/gd**2, float(row[4]))/gd**2)
-
-					# FIX ERRORS:
-					# need to sqrt(ff^2 + ff_err^2) and sqrt(ff^2 - ff_err^2)
-					# then get sqrt(ff^2)
-					# take differences to get new error
-
-					# divide gm by mu for gm/gsd
 		except IOError as e:
 			print(e)
 
 	plt.style.use("classic")
 	rc('font',**{'family':'serif'})
 
-	# ge/gd
-	# NOT mu ge/gd, ge should go to 1
+	# plot G_E/G_D
 	plt.figure(figsize=(12,10))
 	ax = plt.subplot(111)
 	ax.set_xlabel(r'$Q^2$', fontsize=30)
@@ -72,20 +89,17 @@ if len(sys.argv) > 1:
 	plt.yticks(fontsize=20)
 	mark = marker()
 	for i in range(len(q2)):
-		# print(q2[i], ge[i], ge_error[i])
-		# plt.plot(q2[i], ge[i], marker = next(mark))
 		plt.errorbar([j+i/20 for j in q2[i]], ge[i], yerr=ge_error[i], fmt=next(mark), elinewidth=2, markersize=10, markerfacecolor="None", markeredgewidth=2)
+	
+	# plot a fit line where G_E = (1+x/0.662)^{-2} and G_D = (1+x/0.71)^{-2}
 	x = arange(0., 8., 0.1)
 	y = (1+x/0.662)**-2 / (1+x/0.71)**-2
 	plt.plot(x, y)
 	
-	# plt.show()
 	file_names = [i.split("+")[1][:-4] for i in files]
-	# print(file_names)
 	plt.savefig("Figures/ge-gd-" + "&".join(file_names) + ".png", bbox_inches="tight")
 
-	# gm/gd
-	# not gm/gd, gm should go to 2.7 (mu)
+	# plot G_M/mu G_D
 	plt.figure(figsize=(12,10))
 	ax = plt.subplot(111)
 	ax.set_xlabel(r'$Q^2$', fontsize=30)
@@ -95,18 +109,16 @@ if len(sys.argv) > 1:
 	plt.yticks(fontsize=20)
 	mark = marker()
 	for i in range(len(q2)):
-		# print(q2[i], ge[i], ge_error[i])
-		# plt.plot(q2[i], ge[i], marker = next(mark))
 		plt.errorbar([j+i/20 for j in q2[i]], [gm[i][j]/pmm for j in range(len(gm[i]))], yerr=[gm_error[i][j]/pmm for j in range(len(gm_error[i]))], fmt=next(mark), elinewidth=2, markersize=10, markerfacecolor="None", markeredgewidth=2)
-	x = arange(0., 8., 0.1)
+	
+	# plot a fit line where G_M = mu
+	 = arange(0., 8., 0.1)
 	y = [1.0]*len(x)
 	plt.plot(x, y)
-	# plt.show()
 	file_names = [i.split("+")[1][:-4] for i in files]
-	# print(file_names)
 	plt.savefig("Figures/gm-gd-" + "&".join(file_names) + ".png", bbox_inches="tight")
 
-	# mu ge/gm
+	# plot mu G_E/G_M
 	plt.figure(figsize=(12,10))
 	ax = plt.subplot(111)
 	ax.set_xlabel(r'$Q^2$', fontsize=30)
@@ -116,19 +128,16 @@ if len(sys.argv) > 1:
 	plt.yticks(fontsize=20)
 	mark = marker()
 	for i in range(len(q2)):
-		# print(q2[i], ge[i], ge_error[i])
-		# plt.plot(q2[i], ge[i], marker = next(mark))
-
-		# recalculate error (multiplication is special case, see http://www.utm.edu/staff/cerkal/Lect4.html)
+		# recalculate error for a product/ratio of variables (see http://www.utm.edu/staff/cerkal/Lect4.html)
 		ratio_err = [pmm*ge[i][j]/gm[i][j] * ((ge_error[i][j]/ge[i][j])**2 + (gm_error[i][j]/gm[i][j])**2)**0.5 for j in range(len(ge[i]))]
 
 		plt.errorbar([j+i/20 for j in q2[i]], [pmm*ge[i][j]/gm[i][j] for j in range(len(ge[i]))], yerr=ratio_err, fmt=next(mark), elinewidth=2, markersize=10, markerfacecolor="None", markeredgewidth=2)
+	
+	# plot a fit line where mu G_E/G_M = (1-x/8.02)
 	x = arange(0., 8., 0.1)
 	y = (1-x/8.02)
 	plt.plot(x, y)
-	# plt.show()
 	file_names = [i.split("+")[1][:-4] for i in files]
-	# print(file_names)
 	plt.savefig("Figures/ge-gm-" + "&".join(file_names) + ".png", bbox_inches="tight")
 	
 	

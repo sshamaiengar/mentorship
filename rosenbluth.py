@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
 
-
-# run with datafile and normalization factor (optional) as arguments
-
-
 from numpy import deg2rad, linalg, tan, sin, cos, random, array, std, mean, where
 import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
@@ -147,12 +143,9 @@ def plot_form_factors(ge2_vals, gm2_vals, q2, save_path=None):
 
 	"""
 
-	# f1, axes = plt.subplots(1, 2, figsize=(20,10))
 	plt.delaxes()
 	plt.figure(figsize=(24,10))
-	# ax1 = f1.add_subplot(121)
 	ax1 = plt.subplot(121)
-	# ax1.hist(ge2, bins=50, facecolor='red')
 	mu1, sigma1 = stats.norm.fit(ge2_vals)
 
 	n, bins, patches = plt.hist(ge2_vals, bins=50, normed=1, facecolor='red', linewidth=3, histtype="stepfilled")
@@ -162,9 +155,7 @@ def plot_form_factors(ge2_vals, gm2_vals, q2, save_path=None):
 	plt.xticks(fontsize=20, rotation=30)
 	plt.yticks(fontsize=20)
 
-	# ax2 = f1.add_subplot(122)
 	ax2 = plt.subplot(122)
-	# ax2.hist(gm2, bins=50, facecolor='blue')
 	mu2, sigma2 = stats.norm.fit(gm2_vals)
 	n, bins, patches = plt.hist(gm2_vals, bins=50, normed=1, facecolor='blue', linewidth=3, histtype="stepfilled")
 	y = mlab.normpdf(bins, mu2, sigma2)
@@ -179,14 +170,12 @@ def plot_form_factors(ge2_vals, gm2_vals, q2, save_path=None):
 		xytext=(0.6, 0.7), textcoords="axes fraction", verticalalignment='bottom', horizontalalignment='left', fontsize=30)
 	ax1.text(0.5, 1.05, 'a', transform=ax1.transAxes, 
             size=40, weight='bold')
-	# ax1.annotate('$2\sigma$', xy=(mu1, ax1.get_ylim()[1]/3), xycoords='data', xytext=(mu1, ax1.get_ylim()[1]/3), textcoords='data', horizontalalignment='center', fontsize=30)
 	ax2.set_xlabel(r'$G_M^2$', fontsize=30, labelpad=20)
 	ax2.set_ylabel(r'Frequency', fontsize=30, labelpad=20)
 	ax2.annotate('$Q^2 = %.3f$ \n $\mu = %f$ \n $\sigma = %f$' % (q2, mu2, sigma2), xy=(mu2, 0), xycoords='data',
 		xytext=(0.65, 0.7), textcoords="axes fraction", verticalalignment='bottom', horizontalalignment='left', fontsize=30)
 	ax2.text(0.5, 1.05, 'b', transform=ax2.transAxes, 
             size=40, weight='bold')
-	# ax2.annotate('$2\sigma$', xy=(mu2, ax2.get_ylim()[1]/3), xycoords='data', xytext=(mu2, ax2.get_ylim()[1]/3), textcoords='data', horizontalalignment='center', fontsize=30)
 	plt.subplots_adjust(bottom=0.15)
 	if not save_path:
 		plt.show()
@@ -201,12 +190,10 @@ def dipole_form_factor(q2):
 	return (1 + q2 / 0.71) ** -2
 
 
-# only run this stuff if specifically executing this file
+
 # won't run if importing above functions
 if __name__ == '__main__':
 
-
-	# sys.argv is a list of the command line flags
 	# to use a data file, specify with a flag
 	if len(sys.argv) > 1:
 		q_squared = []
@@ -228,7 +215,7 @@ if __name__ == '__main__':
 				for row in data:
 					# allow comments
 					if not row or "".join(row)[0] == "#":
-						# only normalize 1.6 GeV data
+						# only normalize 1.6 GeV data or 8 GeV where angle ~90
 						if len(row) > 1 and ("1.6" in row[1] or "norm" in row[1]):
 							next_normalized= True
 						else:
@@ -260,16 +247,10 @@ if __name__ == '__main__':
 		cross_sections = [1.297e-2, 2.77e-2, 4.929e-2, 1.023e-1, 6.18e-1]
 		uncertainties = [2.243e-4,4.407e-4,7.853e-4,1.370e-3,8.073e-3]
 
-	# reset output file
+	# reset output file with header row
 	with open('out.csv','w') as out:
 		writer = csv.writer(out, delimiter=' ')
 		writer.writerow(['Q^2', 'G_E^2', 'σ_E', 'G_M^2', 'σ_M', 'G_E/G_D', 'G_M/(μG_D)'])
-
-	# print(q_squared)
-	# print(energies)
-	# print(thetas)
-	# print(cross_sections)
-	# print(uncertainties)
 
 	# solve for ge^2 and gm^2 with least squares regression
 	a = []
@@ -311,11 +292,10 @@ if __name__ == '__main__':
 					tau = result[1]
 					epsilon = result[0]
 
-					# print("{:.3e} ----- {:.3e}".format(result[0],result[2]))
-					string = "{:.3e}".format(result[0]).split("e")
-					print(" & \\({}\\times10^{{{:d}}}\\)".format(string[0], int(string[1])), end='')
-					string = "{:.3e}".format(result[2]).split("e")
-					print(" & \\({}\\times10^{{{:d}}}\\)".format(string[0], int(string[1])))
+					# string = "{:.3e}".format(result[0]).split("e")
+					# print(" & \\({}\\times10^{{{:d}}}\\)".format(string[0], int(string[1])), end='')
+					# string = "{:.3e}".format(result[2]).split("e")
+					# print(" & \\({}\\times10^{{{:d}}}\\)".format(string[0], int(string[1])))
 					a.append(result[0])
 					b.append(result[2])
 				else:
@@ -338,6 +318,7 @@ if __name__ == '__main__':
 				
 			# Monte Carlo simulation
 			# sample from normal distribution around reduced cross section and epsilon
+			# use standard deviation of distribution of computed form factors as error associated with form factor measurements
 			eps = []
 			red = []
 			ge2 = []
@@ -359,8 +340,8 @@ if __name__ == '__main__':
 				eps_samples = eps[:,j]
 				red_samples = red[:,j]
 				res = form_factors(eps_samples, red_samples)
-				#negative slope of fit becomes 0
 
+				#negative slope of fit becomes 0
 				if res[0] < 0:
 					ge2.append(res[0])
 					pass
@@ -372,9 +353,7 @@ if __name__ == '__main__':
 
 			a = []
 			b = []
-			# ge2_points.append(ge2)
-			# gm2_points.append(gm2)
-			# q2_vals.append(q2)
+			
 			sigma1, sigma2 = plot_form_factors(ge2, gm2, q2, "Figures")
 			with open('out.csv', 'a') as out:
 				writer = csv.writer(out, delimiter=' ')
