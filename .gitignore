@@ -5,4 +5,4 @@ Figures/*.csv
 *.sublime-workspace
 monte_carlo_points.csv
 out.csv
-!Figures/Form Factors/*.png
+!Figures/Form_Factors/*.png
