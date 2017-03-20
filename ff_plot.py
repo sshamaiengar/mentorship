@@ -69,10 +69,12 @@ if len(sys.argv) > 1:
 
 					q2[i].append(float(row[0]))
 					gd = dipole_form_factor(float(row[0]))
-					ge[i].append(float(row[1])**0.5/gd)
-					ge_error[i].append(error(float(row[1])/gd**2, float(row[2]))/gd**2)
-					gm[i].append(float(row[3])**0.5/gd)
-					gm_error[i].append(error(float(row[3])/gd**2, float(row[4]))/gd**2)
+					ge[i].append(float(row[1])/gd**2)
+					ge_error[i].append(float(row[2])/gd**2)
+					gm[i].append(float(row[3])/gd**2)
+					gm_error[i].append(float(row[4])/gd**2)
+
+
 		except IOError as e:
 			print(e)
 
@@ -83,7 +85,7 @@ if len(sys.argv) > 1:
 	plt.figure(figsize=(12,10))
 	ax = plt.subplot(111)
 	ax.set_xlabel(r'$Q^2$', fontsize=30)
-	ax.set_ylabel(r'$G_E/G_{SD}$', fontsize=30)
+	ax.set_ylabel(r'$G_E^2/G_{SD}^2$', fontsize=30)
 	ax.set_xlim([0,8.0])
 	plt.xticks(fontsize=20)
 	plt.yticks(fontsize=20)
@@ -93,51 +95,67 @@ if len(sys.argv) > 1:
 	
 	# plot a fit line where G_E = (1+x/0.662)^{-2} and G_D = (1+x/0.71)^{-2}
 	x = arange(0., 8., 0.1)
-	y = (1+x/0.662)**-2 / (1+x/0.71)**-2
+	y = (1+x/0.662)**-4 / (1+x/0.71)**-4
 	plt.plot(x, y)
+
+	# shade unphysical region
+	if ax.get_ylim()[0] < 0:
+		plt.axhspan(ax.get_ylim()[0], 0, facecolor='gray', alpha=0.25)
 	
 	file_names = [i.split("+")[1][:-4] for i in files]
 	plt.savefig("Figures/ge-gd-" + "&".join(file_names) + ".png", bbox_inches="tight")
+	# plt.show()
 
 	# plot G_M/mu G_D
 	plt.figure(figsize=(12,10))
 	ax = plt.subplot(111)
 	ax.set_xlabel(r'$Q^2$', fontsize=30)
-	ax.set_ylabel(r'$G_M/\mu G_{SD}$', fontsize=30)
+	ax.set_ylabel(r'$G_M^2/\mu^2 G_{SD}^2$', fontsize=30)
 	ax.set_xlim([0,8.0])
 	plt.xticks(fontsize=20)
 	plt.yticks(fontsize=20)
 	mark = marker()
 	for i in range(len(q2)):
-		plt.errorbar([j+i/20 for j in q2[i]], [gm[i][j]/pmm for j in range(len(gm[i]))], yerr=[gm_error[i][j]/pmm for j in range(len(gm_error[i]))], fmt=next(mark), elinewidth=2, markersize=10, markerfacecolor="None", markeredgewidth=2)
-	
+		plt.errorbar([j+i/20 for j in q2[i]], [gm[i][j]/pmm**2 for j in range(len(gm[i]))], yerr=[gm_error[i][j]/pmm**2 for j in range(len(gm_error[i]))], fmt=next(mark), elinewidth=2, markersize=10, markerfacecolor="None", markeredgewidth=2)
+
 	# plot a fit line where G_M = mu
-	 = arange(0., 8., 0.1)
+	x = arange(0., 8., 0.1)
 	y = [1.0]*len(x)
 	plt.plot(x, y)
+
+	# shade unphysical region
+	if ax.get_ylim()[0] < 0:
+		plt.axhspan(ax.get_ylim()[0], 0, facecolor='gray', alpha=0.25)
+
 	file_names = [i.split("+")[1][:-4] for i in files]
 	plt.savefig("Figures/gm-gd-" + "&".join(file_names) + ".png", bbox_inches="tight")
+	# plt.show()
 
 	# plot mu G_E/G_M
 	plt.figure(figsize=(12,10))
 	ax = plt.subplot(111)
 	ax.set_xlabel(r'$Q^2$', fontsize=30)
-	ax.set_ylabel(r'$\mu G_E/G_M$', fontsize=30)
+	ax.set_ylabel(r'$\mu^2 G_E^2/G_M^2$', fontsize=30)
 	ax.set_xlim([0,8.0])
 	plt.xticks(fontsize=20)
 	plt.yticks(fontsize=20)
 	mark = marker()
 	for i in range(len(q2)):
 		# recalculate error for a product/ratio of variables (see http://www.utm.edu/staff/cerkal/Lect4.html)
-		ratio_err = [pmm*ge[i][j]/gm[i][j] * ((ge_error[i][j]/ge[i][j])**2 + (gm_error[i][j]/gm[i][j])**2)**0.5 for j in range(len(ge[i]))]
+		ratio_err = [pmm**2*ge[i][j]/gm[i][j] * ((ge_error[i][j]/ge[i][j])**2 + (gm_error[i][j]/gm[i][j])**2)**0.5 for j in range(len(ge[i]))]
 
-		plt.errorbar([j+i/20 for j in q2[i]], [pmm*ge[i][j]/gm[i][j] for j in range(len(ge[i]))], yerr=ratio_err, fmt=next(mark), elinewidth=2, markersize=10, markerfacecolor="None", markeredgewidth=2)
-	
+		plt.errorbar([j+i/20 for j in q2[i]], [pmm**2*ge[i][j]/gm[i][j] for j in range(len(ge[i]))], yerr=ratio_err, fmt=next(mark), elinewidth=2, markersize=10, markerfacecolor="None", markeredgewidth=2)
+
 	# plot a fit line where mu G_E/G_M = (1-x/8.02)
 	x = arange(0., 8., 0.1)
-	y = (1-x/8.02)
+	y = (1-x/8.02)**2
 	plt.plot(x, y)
+
+	# shade unphysical region
+	if ax.get_ylim()[0] < 0:
+		plt.axhspan(ax.get_ylim()[0], 0, facecolor='gray', alpha=0.25)
+
 	file_names = [i.split("+")[1][:-4] for i in files]
 	plt.savefig("Figures/ge-gm-" + "&".join(file_names) + ".png", bbox_inches="tight")
-	
+	# plt.show()
 	
