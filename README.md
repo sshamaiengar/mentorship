@@ -1,9 +1,9 @@
 # Frequentist Analysis of Rosenbluth Data: A Study of Proton Form Factor Measurements
 
 These are the Python scripts and subsequent results from this reanalysis of electron-proton scattering data from the NE11 experiment at SLAC (see [this paper](https://doi.org/10.1103/PhysRevD.50.5491)).
-![Ratio of electric proton form factor to standard dipole for 1.75 <= Q^2 <= 8.83](/Figures/Form Factors/ge-gd-unnorm1.6.png)
-![Ratio of magnetic proton form factor to standard dipole for 1.75 <= Q^2 <= 8.83](/Figures/Form Factors/gm-gd-unnorm1.6.png)
-![Ratio of electric proton form factor to magnetic proton form factor for 1.75 <= Q^2 <= 8.83](/Figures/Form Factors/ge-gm-unnorm1.6.png)
+![Ratio of electric proton form factor to standard dipole for 1.75 <= Q^2 <= 8.83](Figures/Form_Factors/ge-gd-unnorm1.6.png)
+![Ratio of magnetic proton form factor to standard dipole for 1.75 <= Q^2 <= 8.83](Figures/Form_Factors/gm-gd-unnorm1.6.png)
+![Ratio of electric proton form factor to magnetic proton form factor for 1.75 <= Q^2 <= 8.83](Figures/Form_Factors/ge-gm-unnorm1.6.png)
 
 ## Dependencies
 The scripts are written in Python 3.5.2, so **Python 3.0 or greater** is required. **numpy**, **scipy**, and **matplotlib** are required.
