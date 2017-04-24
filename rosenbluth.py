@@ -307,14 +307,7 @@ if __name__ == '__main__':
 				# recalculate form factors
 				res = form_factors(eps_samples, red_samples)
 
-				# negative slope of fit becomes 0
-				if res[0] < 0:
-					ge2.append(res[0])
-					pass
-				else:
-					#divide out tau
-					ge2.append(res[0])
-
+				ge2.append(res[0])
 				gm2.append(res[1]/tau)
 
 			# clear the lists from Monte Carlo	

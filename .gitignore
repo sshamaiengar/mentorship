@@ -5,4 +5,5 @@ Figures/*.csv
 *.sublime-workspace
 monte_carlo_points.csv
 out.csv
+rosenbluth_separation_plot.py
 !Figures/Form_Factors/*.png

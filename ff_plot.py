@@ -26,6 +26,19 @@ def marker():
 		for s in syms:
 			yield s
 
+def color():
+
+	""" Cycles through colors to use when plotting the form factors
+
+	Yields:
+		c 		(string) - The matplotlib identifier for the next color to use
+
+	"""
+	colors = ['b', 'r', 'g', 'k']
+	while True:
+		for c in colors:
+			yield c
+
 def error(ff2, error2):
 
 	""" Calculates the error associated with the form factor given the form factor squared and its error
@@ -82,28 +95,45 @@ if len(sys.argv) > 1:
 	rc('font',**{'family':'serif'})
 
 	# plot G_E/G_D
-	plt.figure(figsize=(12,10))
+	plt.figure(figsize=(6,5))
 	ax = plt.subplot(111)
 	ax.set_xlabel(r'$Q^2$', fontsize=30)
 	ax.set_ylabel(r'$G_E^2/G_{SD}^2$', fontsize=30)
 	ax.set_xlim([0,8.0])
 	plt.xticks(fontsize=20)
 	plt.yticks(fontsize=20)
-	mark = marker()
+	# mark = marker()
+	c = color()
+	fill = True
+	c1 = next(c)
 	for i in range(len(q2)):
-		plt.errorbar([j+i/20 for j in q2[i]], ge[i], yerr=ge_error[i], fmt=next(mark), elinewidth=2, markersize=10, markerfacecolor="None", markeredgewidth=2)
-	
+		# c1 = next(c)
+		if fill:
+			plt.errorbar([j+i/20 for j in q2[i]], ge[i], yerr=ge_error[i], fmt='o', elinewidth=2, markersize=10, ecolor=c1, markerfacecolor=c1, markeredgecolor=c1, markeredgewidth=2, label="RC")
+		else:
+			plt.errorbar([j+i/20 for j in q2[i]], ge[i], yerr=ge_error[i], fmt='o', elinewidth=2, markersize=10, ecolor=c1, markerfacecolor='none', markeredgecolor=c1, markeredgewidth=2, label='No RC')
+		fill = not fill
+
 	# plot a fit line where G_E = (1+x/0.662)^{-2} and G_D = (1+x/0.71)^{-2}
 	x = arange(0., 8., 0.1)
 	y = (1+x/0.662)**-4 / (1+x/0.71)**-4
-	plt.plot(x, y)
+	plt.plot(x, y, '-g', label='Carlson-Griffioen')
+
+	# add a legend
+	if len(files) > 1:
+		handles, labels = ax.get_legend_handles_labels()
+		# handles.append(fit_curve)
+		print(handles, labels)
+		# handles = [h[0] for h in handles[0]]
+		ax.legend(handles, labels, loc='upper left', numpoints=1, fontsize=20)
 
 	# shade unphysical region
+	ax.set_ylim(-0.5, ax.get_ylim()[1])
 	if ax.get_ylim()[0] < 0:
 		plt.axhspan(ax.get_ylim()[0], 0, facecolor='gray', alpha=0.25)
 	
 	file_names = [i.split("+")[1][:-4] for i in files]
-	plt.savefig("Figures/ge-gd-" + "&".join(file_names) + ".png", bbox_inches="tight")
+	plt.savefig("Figures/Form_Factors/ge-gd-" + "&".join(file_names) + ".png", bbox_inches="tight")
 	# plt.show()
 
 	# plot G_M/mu G_D
@@ -115,20 +145,28 @@ if len(sys.argv) > 1:
 	plt.xticks(fontsize=20)
 	plt.yticks(fontsize=20)
 	mark = marker()
+	c = color()
+	fill = True
+	c1 = next(c)
 	for i in range(len(q2)):
-		plt.errorbar([j+i/20 for j in q2[i]], [gm[i][j]/pmm**2 for j in range(len(gm[i]))], yerr=[gm_error[i][j]/pmm**2 for j in range(len(gm_error[i]))], fmt=next(mark), elinewidth=2, markersize=10, markerfacecolor="None", markeredgewidth=2)
+		# c1 = next(c)
+		if fill:
+			plt.errorbar([j+i/20 for j in q2[i]], [gm[i][j]/pmm**2 for j in range(len(gm[i]))], yerr=[gm_error[i][j]/pmm**2 for j in range(len(gm_error[i]))], fmt='o', elinewidth=2, markersize=10, ecolor=c1, markerfacecolor=c1, markeredgecolor=c1, markeredgewidth=2)
+		else:
+			plt.errorbar([j+i/20 for j in q2[i]], [gm[i][j]/pmm**2 for j in range(len(gm[i]))], yerr=[gm_error[i][j]/pmm**2 for j in range(len(gm_error[i]))], fmt='o', elinewidth=2, markersize=10, ecolor=c1, markerfacecolor='none', markeredgecolor=c1, markeredgewidth=2)
+		fill=not fill
 
 	# plot a fit line where G_M = mu
 	x = arange(0., 8., 0.1)
 	y = [1.0]*len(x)
-	plt.plot(x, y)
+	plt.plot(x, y, '-g')
 
 	# shade unphysical region
 	if ax.get_ylim()[0] < 0:
 		plt.axhspan(ax.get_ylim()[0], 0, facecolor='gray', alpha=0.25)
 
 	file_names = [i.split("+")[1][:-4] for i in files]
-	plt.savefig("Figures/gm-gd-" + "&".join(file_names) + ".png", bbox_inches="tight")
+	plt.savefig("Figures/Form_Factors/gm-gd-" + "&".join(file_names) + ".png", bbox_inches="tight")
 	# plt.show()
 
 	# plot mu G_E/G_M
@@ -140,22 +178,29 @@ if len(sys.argv) > 1:
 	plt.xticks(fontsize=20)
 	plt.yticks(fontsize=20)
 	mark = marker()
+	c = color()
+	c1 = next(c)
+	fill = True
 	for i in range(len(q2)):
+		# c1 = next(c)
 		# recalculate error for a product/ratio of variables (see http://www.utm.edu/staff/cerkal/Lect4.html)
 		ratio_err = [pmm**2*ge[i][j]/gm[i][j] * ((ge_error[i][j]/ge[i][j])**2 + (gm_error[i][j]/gm[i][j])**2)**0.5 for j in range(len(ge[i]))]
-
-		plt.errorbar([j+i/20 for j in q2[i]], [pmm**2*ge[i][j]/gm[i][j] for j in range(len(ge[i]))], yerr=ratio_err, fmt=next(mark), elinewidth=2, markersize=10, markerfacecolor="None", markeredgewidth=2)
+		if fill:
+			plt.errorbar([j+i/20 for j in q2[i]], [pmm**2*ge[i][j]/gm[i][j] for j in range(len(ge[i]))], yerr=ratio_err, fmt='o', elinewidth=2, markersize=10, ecolor=c1, markerfacecolor=c1, markeredgecolor=c1, markeredgewidth=2)
+		else:
+			plt.errorbar([j+i/20 for j in q2[i]], [pmm**2*ge[i][j]/gm[i][j] for j in range(len(ge[i]))], yerr=ratio_err, fmt='o', elinewidth=2, markersize=10, ecolor=c1, markerfacecolor='none', markeredgecolor=c1, markeredgewidth=2)
+		fill = not fill
 
 	# plot a fit line where mu G_E/G_M = (1-x/8.02)
 	x = arange(0., 8., 0.1)
 	y = (1-x/8.02)**2
-	plt.plot(x, y)
+	plt.plot(x, y, '-g')
 
 	# shade unphysical region
 	if ax.get_ylim()[0] < 0:
 		plt.axhspan(ax.get_ylim()[0], 0, facecolor='gray', alpha=0.25)
 
 	file_names = [i.split("+")[1][:-4] for i in files]
-	plt.savefig("Figures/ge-gm-" + "&".join(file_names) + ".png", bbox_inches="tight")
+	plt.savefig("Figures/Form_Factors/ge-gm-" + "&".join(file_names) + ".png", bbox_inches="tight")
 	# plt.show()
 	
