@@ -162,7 +162,16 @@ def plot_form_factors(ge2_vals, gm2_vals, q2, save_path=None):
 		plt.show()
 	else:
 		plt.savefig(save_path+"/ff_q2_"+str(q2)+".png", bbox_inches="tight")
+
+
 	return sigma1, sigma2
+
+def calc_form_factor_ratio_error(ge2_vals, gm2_vals):
+
+	""" Returns the value of the uncertainty on the mu2 * ge2 / gm2 measurement, based on MC simulation of reduced cross sections """
+	ff_ratio_vals = [pmm**2 * ge2_vals[i]/gm2_vals[i] for i in range(len(ge2_vals))]
+	mu, sigma = stats.norm.fit(ff_ratio_vals)
+	return sigma
 
 def dipole_form_factor(q2):
 
@@ -229,7 +238,7 @@ if __name__ == '__main__':
 	# reset output file with header row
 	with open('out.csv','w') as out:
 		writer = csv.writer(out, delimiter=' ')
-		writer.writerow(['Q^2', 'G_E^2', 'σ_E', 'G_M^2', 'σ_M', 'G_E/G_D', 'G_M/(μG_D)'])
+		writer.writerow(['Q^2', 'G_E^2', 'σ_E', 'G_M^2', 'σ_M', 'G_E/G_D', 'G_M/(μG_D)', 'mu^2*G_E^2/G_M^2_error'])
 
 	# solve for ge^2 and gm^2 with least squares regression
 	a = []
@@ -315,9 +324,12 @@ if __name__ == '__main__':
 			b = []
 			
 			# log and plot results
+
+			# log and calculate form factor ratio (mu2 ge2/gm2)
+			print("mu^2 G_E^2/G_M^2 error, Q^2 = "+str(q2)+": " + str(calc_form_factor_ratio_error(ge2, gm2)))
 			sigma1, sigma2 = plot_form_factors(ge2, gm2, q2, "Figures")
 			with open('out.csv', 'a') as out:
 				writer = csv.writer(out, delimiter=' ')
-				writer.writerow([q2, ge_squared, sigma1, gm_squared, sigma2, ge_squared**0.5/dipole_form_factor(q2), gm_squared**0.5/dipole_form_factor(q2)/pmm])
+				writer.writerow([q2, ge_squared, sigma1, gm_squared, sigma2, ge_squared**0.5/dipole_form_factor(q2), gm_squared**0.5/dipole_form_factor(q2)/pmm, calc_form_factor_ratio_error(ge2, gm2)])
 				# writer.writerow([q2, ge_squared, sigma1, gm_squared, sigma2])
 

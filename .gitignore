@@ -10,4 +10,5 @@ monte_carlo_ratio_errors.py
 Figures/*.docx
 !Figures/Form_Factors/*.png
 !SuperRosenbluth/Figures/*.png
+!SuperRosenbluth/Figures/Annotated/*.png
 *.docx

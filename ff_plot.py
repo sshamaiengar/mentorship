@@ -11,6 +11,7 @@ ge_error = []
 gm = []
 gm_error = []
 q2 = []
+ge_gm_error = []
 
 def marker():
 
@@ -70,6 +71,7 @@ if len(sys.argv) > 1:
 		ge_error.append([])
 		gm_error.append([])
 		q2.append([])
+		ge_gm_error.append([])
 		if "/" not in files[i]:
 			file_path = path.relpath("Figures/"+files[i])
 		else:
@@ -89,7 +91,7 @@ if len(sys.argv) > 1:
 					ge_error[i].append(float(row[2])/gd**2)
 					gm[i].append(float(row[3])/gd**2)
 					gm_error[i].append(float(row[4])/gd**2)
-
+					ge_gm_error[i].append(float(row[7]))
 
 		except IOError as e:
 			print(e)
@@ -198,9 +200,8 @@ if len(sys.argv) > 1:
 	m1 = next(mark)
 	for i in range(len(q2)):
 		# recalculate error for a product/ratio of variables (see http://www.utm.edu/staff/cerkal/Lect4.html)
-		ratio_err = [pmm**2 * ge[i][j] / gm[i][j] * ( (ge_error[i][j] / ge[i][j]) ** 2 + (gm_error[i][j] / gm[i][j]) ** 2) ** 0.5 for j in range(len(ge[i]))]
-		# ratio_err = [calc_ff_ratio_err(ge[i][j], ge_error[i][j], gm[i][j], gm_error[i][j]) for j in range(len(ge[i]))]
-		# print(ratio_err, ratio_err2)
+		# ratio_err = [pmm**2 * ge[i][j] / gm[i][j] * ( (ge_error[i][j] / ge[i][j]) ** 2 + (gm_error[i][j] / gm[i][j]) ** 2) ** 0.5 for j in range(len(ge[i]))]
+		ratio_err = ge_gm_error[i]
 		if fill:
 			plt.errorbar([j+i/20 for j in q2[i]], [pmm**2*ge[i][j]/gm[i][j] for j in range(len(ge[i]))], yerr=ratio_err, fmt=m1, elinewidth=2, markersize=10, ecolor=c1, markerfacecolor=c1, markeredgecolor=c1, markeredgewidth=2)
 		else:
