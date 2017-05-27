@@ -3,7 +3,7 @@
 These are the Python scripts and subsequent results from this reanalysis of electron-proton scattering data from the NE11 experiment at SLAC (see [this paper](https://doi.org/10.1103/PhysRevD.50.5491)).
 ![Ratio of electric proton form factor to standard dipole for 1.75 <= Q^2 <= 8.83](Figures/Form_Factors/ge-gd-unnorm1.6.png)
 ![Ratio of magnetic proton form factor to standard dipole for 1.75 <= Q^2 <= 8.83](Figures/Form_Factors/gm-gd-unnorm1.6.png)
-![Ratio of electric proton form factor to magnetic proton form factor for 1.75 <= Q^2 <= 8.83](Figures/Form_Factors/ge-gm-unnorm1.6.png)
+![Ratio of electric proton form factor to magnetic proton form factor for 1.75 <= Q^2 <= 8.83](Figures/Form_Factors/ge-gm-unnorm1.6-2.png)
 
 ## Dependencies
 The scripts are written in Python 3.5.2, so **Python 3.0 or greater** is required. **numpy**, **scipy**, and **matplotlib** are required.
@@ -16,8 +16,6 @@ SuperRosenbluth/ | Data files, output files, and form factor plots of Jlab Hall 
 chi_square.py | Performs chi-squared analysis of scattering data as reduced cross sections versus epsilon. Generates chi-squared distribution histograms.
 data.csv | 8 GeV scattering data from SLAC NE11, reported by Andivahis et al. 1994
 data2.csv | Annotated 8 GeV and 1.6 GeV scattering data from SLAC NE11, reported by Andivahis et al. 1994
-data3.csv | **(not in use)** Annotated 8 GeV and 1.6 GeV scattering data from SLAC NE11, reported by Andivahis et al. 1994<br>1.6 GeV cross sections and errors are multiplied by a normalizing factor of 0.958.
-data4.csv | **(not in use)** Annotated 8 GeV and 1.6 GeV scattering data from SLAC NE11, reported by Andivahis et al. 1994<br>1.6 GeV cross sections and errors are multiplied by a normalizing factor of 0.958. Includes values of E'.
 data5.csv | Annotated 8 GeV and 1.6 GeV scattering data from SLAC NE11, reported by Andivahis et al. 1994. Rows where angle ~= 90 degrees are marked to be multiplied by a normalizing factor.
 data_rc.csv | Annotated 8 GeV and 1.6 GeV scattering data from SLAC NE11, reported by Andivahis et al. 1994, with cross sections and their errors multiplied by radiative correction factors (Blunden and Melnitchouk 2017) for 1.75 <= Q^2 <= 5.0.
 data_rc2.csv | Annotated 8 GeV and 1.6 GeV scattering data from SLAC NE11, reported by Andivahis et al. 1994, with cross sections and their errors multiplied by radiative correction factors (Blunden and Melnitchouk 2017) for 1.75 <= Q^2 <= 5.0. Rows where angle ~= 90 degrees are marked to be multiplied by a normalizing factor.
