@@ -44,7 +44,7 @@ def error(ff2, error2):
 
 	""" Calculates the error associated with the form factor given the form factor squared and its error
 
-	Arguments:
+	Args:
 		ff2				(float) - The form factor squared
 		error2 			(float) - The error associated with the form factor squared
 

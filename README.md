@@ -11,7 +11,7 @@ The scripts are written in Python 3.5.2, so **Python 3.0 or greater** is require
 ## Contents
 File/Path name | Description
 -------------- | ------------
-FormFactors/ | Plots (PNG files) of form factors and their ratios versus Q^2 for three different analyses, with and without radiative corrections applied (results with them have "rc")
+FormFactors/ | Plots (PNG files) of form factors and their ratios versus Q^2 for three different analyses, with and without radiative corrections applied (results with them have "rc" in file name)
 SuperRosenbluth/ | Data files, output files, and form factor plots of Jlab Hall A data (Super Rosenbluth) at Q^2 = 2.64, 3.20, and 4.10.
 chi_square.py | Performs chi-squared analysis of scattering data as reduced cross sections versus epsilon. Generates chi-squared distribution histograms.
 data.csv | 8 GeV scattering data from SLAC NE11, reported by Andivahis et al. 1994

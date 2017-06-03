@@ -162,13 +162,18 @@ def plot_form_factors(ge2_vals, gm2_vals, q2, save_path=None):
 		plt.show()
 	else:
 		plt.savefig(save_path+"/ff_q2_"+str(q2)+".png", bbox_inches="tight")
-
-
 	return sigma1, sigma2
 
 def calc_form_factor_ratio_error(ge2_vals, gm2_vals):
 
-	""" Returns the value of the uncertainty on the mu2 * ge2 / gm2 measurement, based on MC simulation of reduced cross sections """
+	""" Returns the value of the uncertainty on the mu2 * ge2 / gm2 measurement, based on MC simulation of reduced cross sections 
+
+	Args:
+		ge2_vals			(list) - The values of the electric form factor squared
+		gm2_vals 			(list) - The values of the magnetic form factor squared
+	Returns:
+		sigma 				(double) - The error of the form factor ratio"""
+
 	ff_ratio_vals = [pmm**2 * ge2_vals[i]/gm2_vals[i] for i in range(len(ge2_vals))]
 	mu, sigma = stats.norm.fit(ff_ratio_vals)
 	return sigma
@@ -179,8 +184,6 @@ def dipole_form_factor(q2):
 
 	return (1 + q2 / 0.71) ** -2
 
-
-# won't run if importing above functions
 if __name__ == '__main__':
 
 	# to use a data file, specify with a flag
