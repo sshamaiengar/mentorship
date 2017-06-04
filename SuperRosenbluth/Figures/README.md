@@ -10,5 +10,7 @@ File/Path name | Description
 Unnormalized/ | No normalization factor applied.
 
 ## Subdirectory Contents
+File/Path name | Description
+-------------- | ------------
 ../Old_RCs/ | Original cross section data
 ../Two\_Photon\_RCs/ | Cross section data multiplied by new two-photon approximation radiative corrections (Blunden and Melnitchouk)
